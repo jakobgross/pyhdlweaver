@@ -39,7 +39,6 @@ Ether, ICMP, IP, Raw, TCP, UDP, raw = _import_scapy_offline()
 
 async def reset_dut(dut) -> None:
     dut.rst.value = 1
-    dut.config_valid.value = 0
 
     for _ in range(4):
         await RisingEdge(dut.clk)

@@ -5,3 +5,4 @@ from dataclasses import dataclass
 class ConfigPort:
     name: str
     width: int
+    default_value: int | None = None

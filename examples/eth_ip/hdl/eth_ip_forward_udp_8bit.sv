@@ -24,7 +24,6 @@ module eth_ip_forward_udp_8bit #(
   output logic m_axis_tvalid,
   input  logic m_axis_tready,
 
-  input  logic config_valid,
   output logic [31:0] non_udp_drop_count
 );
 
@@ -58,6 +57,7 @@ logic [15:0] ip_flags_frag_reg;
 logic [7:0] ip_protocol_reg;
 logic [31:0] ip_src_reg;
 logic [31:0] ip_dst_reg;
+logic [31:0] ip_dst_comb;
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign payload_fire = (state == ST_FORWARD) && s_axis_tvalid && s_axis_tready;
@@ -77,6 +77,13 @@ assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;
 
 // Drive the selected route for every forwarded payload beat.
 assign m_axis_tdest = route_tdest_reg;
+
+always_comb begin
+  ip_dst_comb = ip_dst_reg;
+  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+    ip_dst_comb[7:0] = s_axis_tdata[7:0];
+  end
+end
 
 always_comb begin
   // Combine all configured drop checks into one parse decision.

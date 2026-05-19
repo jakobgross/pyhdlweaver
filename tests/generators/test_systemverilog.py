@@ -2,7 +2,7 @@ import pytest
 
 from examples.eth_ip.eth_ip import IP_PARSER
 from examples.eth_ip.generate_sv import generate_eth_ip_forward_udp_8bit, generate_eth_ip_parser
-from pyhdlweaver.actions import DropOnMismatch, RouteByValue, RouteToAll
+from pyhdlweaver.actions import DropOnMismatch, DropOnRegisterMismatch, RouteByRegister, RouteByValue, RouteToAll
 from pyhdlweaver.generators import GeneratedFile, SystemVerilogGenerator
 from pyhdlweaver.protocols import SidebandProtocol
 from pyhdlweaver.protocols.definitions import Field
@@ -74,6 +74,62 @@ def test_systemverilog_generator_uses_comb_bypass_for_final_beat_action_field():
     assert "kind_comb[7:0] = s_axis_tdata[7:0];" in generated.content
     assert "drop_next = drop_next | (kind_comb != 8'hab);" in generated.content
     assert "kind_reg" not in generated.content.split("drop_next")[1].split(";")[0]
+
+
+def test_systemverilog_generator_register_drop_uses_reg_signal_and_emits_config_valid():
+    # DropOnRegisterMismatch must compare against the registered copy (cfg_xxx_reg),
+    # not the raw input port, and the module must expose config_valid only when config
+    # ports are present.
+    kind_field = Field(
+        "kind",
+        offset=0,
+        width=8,
+        actions=[DropOnRegisterMismatch(register="allowed_kind", default_value=0xAB)],
+    )
+    protocol = SidebandProtocol(name="reg_drop", fields=[kind_field], total_length=1)
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+    assert "input  logic config_valid" in generated.content
+    assert "input  logic [7:0] cfg_allowed_kind" in generated.content
+    assert "logic [7:0] cfg_allowed_kind_reg;" in generated.content
+    assert "cfg_allowed_kind_reg <= 8'hab;" in generated.content
+    assert "if (config_valid) begin" in generated.content
+    assert "cfg_allowed_kind_reg <= cfg_allowed_kind;" in generated.content
+    # offset 0 on a 32-bit bus is the only (= final) parse beat, so the _comb bypass applies
+    assert "drop_next = drop_next | !(kind_comb == cfg_allowed_kind_reg);" in generated.content
+    assert "cfg_allowed_kind)" not in generated.content.replace("cfg_allowed_kind_reg", "")
+
+
+def test_systemverilog_generator_register_route_uses_reg_signal():
+    kind_field = Field(
+        "kind",
+        offset=0,
+        width=8,
+        actions=[RouteByRegister(register="expected_kind", destination=1, default_value=0xFF)],
+    )
+    protocol = SidebandProtocol(name="reg_route", fields=[kind_field], total_length=1)
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+    assert "logic [7:0] cfg_expected_kind_reg;" in generated.content
+    assert "cfg_expected_kind_reg <= 8'hff;" in generated.content
+    # offset 0 on a 32-bit bus is the only (= final) parse beat, so the _comb bypass applies
+    assert "if (kind_comb == cfg_expected_kind_reg)" in generated.content
+
+
+def test_systemverilog_generator_no_config_valid_without_register_actions():
+    kind_field = Field(
+        "kind",
+        offset=0,
+        width=8,
+        actions=[DropOnMismatch(expected=0xAB)],
+    )
+    protocol = SidebandProtocol(name="static_drop", fields=[kind_field], total_length=1)
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+    assert "config_valid" not in generated.content
 
 
 def test_systemverilog_generator_rejects_route_to_all_for_tdest():

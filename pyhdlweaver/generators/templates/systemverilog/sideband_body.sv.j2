@@ -27,6 +27,9 @@ logic [TDEST_WIDTH-1:0] route_tdest_reg;
 {% for declaration in comb_declarations %}
 {{ declaration }}
 {% endfor %}
+{% for declaration in config_reg_declarations %}
+{{ declaration }}
+{% endfor %}
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign payload_fire = (state == ST_FORWARD) && s_axis_tvalid && s_axis_tready;
@@ -88,10 +91,20 @@ always_ff @(posedge clk) begin
 {% for assignment in field_reset_assignments %}
     {{ assignment }}
 {% endfor %}
+{% for assignment in config_reg_reset_assignments %}
+    {{ assignment }}
+{% endfor %}
 {% for condition in plan.drop_conditions %}
     {{ condition.counter_name }} <= 32'd0;
 {% endfor %}
   end else begin
+{% if config_reg_update_assignments %}
+    if (config_valid) begin
+{% for assignment in config_reg_update_assignments %}
+      {{ assignment }}
+{% endfor %}
+    end
+{% endif %}
     if (parse_fire || payload_fire || drop_fire) begin
       sticky_tuser <= sticky_tuser | s_axis_tuser;
     end

@@ -22,12 +22,14 @@ module {{ plan.module_name }} #(
   output logic m_axis_tuser,
   output logic [TDEST_WIDTH-1:0] m_axis_tdest,
   output logic m_axis_tvalid,
-  input  logic m_axis_tready,
+  input  logic m_axis_tready{{ "," if plan.config_ports or plan.drop_conditions else "" }}
 
-  input  logic config_valid{{ "," if plan.config_ports or plan.drop_conditions else "" }}
+{% if plan.config_ports %}
+  input  logic config_valid,
 {% for port in plan.config_ports %}
   input  logic [{{ port.width - 1 }}:0] {{ port.name }}{{ "," if not loop.last or plan.drop_conditions else "" }}
 {% endfor %}
+{% endif %}
 {% for condition in plan.drop_conditions %}
   output logic [31:0] {{ condition.counter_name }}{{ "," if not loop.last else "" }}
 {% endfor %}

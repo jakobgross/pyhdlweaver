@@ -137,7 +137,7 @@ class SystemVerilogGenerator(CodeGenerator):
                 f"({value} > {sv_int(field_.width, action.max_value)}))"
             )
         if isinstance(action, (DropOnRegisterMatch, DropOnRegisterMismatch)):
-            register = self.config_value(config_ports, action.register, field_.width)
+            register = self.config_value(config_ports, action.register, field_.width, action.default_value)
             if action.mask is None:
                 comparison = f"({value} == {register})"
             else:
@@ -147,12 +147,12 @@ class SystemVerilogGenerator(CodeGenerator):
                 return comparison
             return f"!{comparison}"
         if isinstance(action, DropOnRegisterFlagMismatch):
-            register = self.config_value(config_ports, action.register, field_.width)
+            register = self.config_value(config_ports, action.register, field_.width, action.default_value)
             mask = sv_int(field_.width, action.mask)
             return f"(({value} & {mask}) != ({register} & {mask}))"
         if isinstance(action, DropOnRegisterRange):
-            min_register = self.config_value(config_ports, action.min_register, field_.width)
-            max_register = self.config_value(config_ports, action.max_register, field_.width)
+            min_register = self.config_value(config_ports, action.min_register, field_.width, action.min_default)
+            max_register = self.config_value(config_ports, action.max_register, field_.width, action.max_default)
             return f"(({value} < {min_register}) || ({value} > {max_register}))"
         raise NotImplementedError(f"Unsupported drop action: {type(action).__name__}")
 
@@ -197,7 +197,7 @@ class SystemVerilogGenerator(CodeGenerator):
                 )
             return conditions, optional_tdest(action.default)
         if isinstance(action, RouteByRegister):
-            register = self.config_value(config_ports, action.register, field_.width)
+            register = self.config_value(config_ports, action.register, field_.width, action.default_value)
             if action.mask is None:
                 expression = f"({value} == {register})"
             else:
@@ -212,8 +212,8 @@ class SystemVerilogGenerator(CodeGenerator):
                 )
             ], optional_tdest(action.default)
         if isinstance(action, RouteByRegistersRange):
-            min_register = self.config_value(config_ports, action.min_register, field_.width)
-            max_register = self.config_value(config_ports, action.max_register, field_.width)
+            min_register = self.config_value(config_ports, action.min_register, field_.width, action.min_default)
+            max_register = self.config_value(config_ports, action.max_register, field_.width, action.max_default)
             destination = tdest(action.destination)
             return [
                 RouteCondition(
@@ -229,11 +229,12 @@ class SystemVerilogGenerator(CodeGenerator):
         config_ports: dict[str, ConfigPort],
         name: str,
         width: int,
+        default_value: int | None = None,
     ) -> str:
-        """Return the port name for a config register, creating a ConfigPort entry on first use."""
+        """Return the _reg signal name for a config register, creating a ConfigPort entry on first use."""
         port_name = f"cfg_{sv_identifier(name)}"
-        config_ports.setdefault(port_name, ConfigPort(name=port_name, width=width))
-        return port_name
+        config_ports.setdefault(port_name, ConfigPort(name=port_name, width=width, default_value=default_value))
+        return f"{port_name}_reg"
 
     def render_module(self, plan: GenerationPlan, body: str) -> str:
         """Wrap a rendered body string in the module template and return the full file content."""

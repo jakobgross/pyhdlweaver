@@ -273,7 +273,6 @@ pyhdlweaver/
 - [x] End-to-end test: ETH+IP definition generates a SystemVerilog file
 
 #### bugs present
-- [ ] module.sv.j2 (line 27), drop.py (line 91), route.py (line 90): register-based actions expose config ports, but default_value, min_default, max_default, and config_valid are not actually used in generated HDL. Since we discussed default values for register actions, this is an implementation gap.
 
 - [ ] systemverilog_generator.py (line 160), sideband_systemverilog_generator.py (line 28): route literals are hard-coded as 4-bit values even though the module has TDEST_WIDTH. Works with the default, but the parameter is not really honored.
 
@@ -286,9 +285,9 @@ pyhdlweaver/
 - [x] Drive AXI-Stream packets into generated RTL
 - [x] Check against scapy packets
 - [x] Create a ETH_IP_UDP_ONLY sv parser that only forwards UDP packets
+- [x] Include valid, dropped, and short-packet test vectors
 - [ ] Compare parsed metadata and forwarded data against `DataPacket` golden model
 - [ ] Run test for 8, 32, and 64-bit stream widths
-- [ ] Include valid, dropped, and short-packet test vectors
 
 ### Milestone 6 - AXI-Lite Register Map
 - [ ] Register map generation from protocol + actions

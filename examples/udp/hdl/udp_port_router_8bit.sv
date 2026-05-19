@@ -1,8 +1,8 @@
-// eth_ip_route_broadcast_udp_32bit generated with pyhdlweaver by Jakob Gross
+// udp_port_router_8bit generated with pyhdlweaver by Jakob Gross
 // https://github.com/jakobgross/pyhdlweaver
 
-module eth_ip_route_broadcast_udp_32bit #(
-  parameter int DATA_WIDTH = 32,
+module udp_port_router_8bit #(
+  parameter int DATA_WIDTH = 8,
   parameter int KEEP_WIDTH = DATA_WIDTH / 8,
   parameter int TDEST_WIDTH = 4
 ) (
@@ -22,11 +22,13 @@ module eth_ip_route_broadcast_udp_32bit #(
   output logic m_axis_tuser,
   output logic [TDEST_WIDTH-1:0] m_axis_tdest,
   output logic m_axis_tvalid,
-  input  logic m_axis_tready
+  input  logic m_axis_tready,
 
+  input  logic config_valid,
+  input  logic [15:0] cfg_dst_port
 );
 
-localparam int PARSE_BEATS = 9;
+localparam int PARSE_BEATS = 38;
 
 typedef enum logic [1:0] {
   // Capture fixed parse-region fields.
@@ -38,7 +40,7 @@ typedef enum logic [1:0] {
 } state_t;
 
 state_t state;
-logic [3:0] beat_count;
+logic [5:0] beat_count;
 logic sticky_tuser;
 logic parser_drop;
 logic frame_started;
@@ -49,14 +51,9 @@ logic drop_next;
 logic [TDEST_WIDTH-1:0] route_tdest_next;
 logic [TDEST_WIDTH-1:0] route_tdest_reg;
 
-logic [15:0] eth_ethertype_reg;
-logic [7:0] ip_version_ihl_reg;
-logic [15:0] ip_total_length_reg;
-logic [15:0] ip_flags_frag_reg;
-logic [7:0] ip_protocol_reg;
-logic [31:0] ip_src_reg;
-logic [31:0] ip_dst_reg;
-logic [31:0] ip_dst_comb;
+logic [15:0] udp_dport_reg;
+logic [15:0] udp_dport_comb;
+logic [15:0] cfg_dst_port_reg;
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign payload_fire = (state == ST_FORWARD) && s_axis_tvalid && s_axis_tready;
@@ -78,10 +75,9 @@ assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;
 assign m_axis_tdest = route_tdest_reg;
 
 always_comb begin
-  ip_dst_comb = ip_dst_reg;
+  udp_dport_comb = udp_dport_reg;
   if (parse_fire && beat_count == PARSE_BEATS - 1) begin
-    ip_dst_comb[15:8] = s_axis_tdata[7:0];
-    ip_dst_comb[7:0] = s_axis_tdata[15:8];
+    udp_dport_comb[7:0] = s_axis_tdata[7:0];
   end
 end
 
@@ -90,9 +86,8 @@ assign drop_next = 1'b0;
 
 always_comb begin
   // Start with the default route and let matching route actions override it.
-  route_tdest_next = 4'h3;
-  if (ip_protocol_reg == 8'h11) route_tdest_next = 4'h1;
-  if (ip_dst_comb == 32'hffffffff) route_tdest_next = 4'h0;
+  route_tdest_next = 4'h1;
+  if (udp_dport_comb == cfg_dst_port_reg) route_tdest_next = 4'h0;
 end
 
 always_ff @(posedge clk) begin
@@ -103,14 +98,12 @@ always_ff @(posedge clk) begin
     parser_drop <= 1'b0;
     frame_started <= 1'b0;
     route_tdest_reg <= '0;
-    eth_ethertype_reg <= 16'd0;
-    ip_version_ihl_reg <= 8'd0;
-    ip_total_length_reg <= 16'd0;
-    ip_flags_frag_reg <= 16'd0;
-    ip_protocol_reg <= 8'd0;
-    ip_src_reg <= 32'd0;
-    ip_dst_reg <= 32'd0;
+    udp_dport_reg <= 16'd0;
+    cfg_dst_port_reg <= 16'h4d2;
   end else begin
+    if (config_valid) begin
+      cfg_dst_port_reg <= cfg_dst_port;
+    end
     if (parse_fire || payload_fire || drop_fire) begin
       sticky_tuser <= sticky_tuser | s_axis_tuser;
     end
@@ -120,33 +113,11 @@ always_ff @(posedge clk) begin
         // Count fixed-header beats and capture configured fields.
         if (parse_fire) begin
           case (beat_count)
-            3: begin
-              eth_ethertype_reg[15:8] <= s_axis_tdata[7:0];
-              eth_ethertype_reg[7:0] <= s_axis_tdata[15:8];
-              ip_version_ihl_reg[7:0] <= s_axis_tdata[23:16];
+            36: begin
+              udp_dport_reg[15:8] <= s_axis_tdata[7:0];
             end
-            4: begin
-              ip_total_length_reg[15:8] <= s_axis_tdata[7:0];
-              ip_total_length_reg[7:0] <= s_axis_tdata[15:8];
-            end
-            5: begin
-              ip_flags_frag_reg[15:8] <= s_axis_tdata[7:0];
-              ip_flags_frag_reg[7:0] <= s_axis_tdata[15:8];
-              ip_protocol_reg[7:0] <= s_axis_tdata[31:24];
-            end
-            6: begin
-              ip_src_reg[31:24] <= s_axis_tdata[23:16];
-              ip_src_reg[23:16] <= s_axis_tdata[31:24];
-            end
-            7: begin
-              ip_src_reg[15:8] <= s_axis_tdata[7:0];
-              ip_src_reg[7:0] <= s_axis_tdata[15:8];
-              ip_dst_reg[31:24] <= s_axis_tdata[23:16];
-              ip_dst_reg[23:16] <= s_axis_tdata[31:24];
-            end
-            8: begin
-              ip_dst_reg[15:8] <= s_axis_tdata[7:0];
-              ip_dst_reg[7:0] <= s_axis_tdata[15:8];
+            37: begin
+              udp_dport_reg[7:0] <= s_axis_tdata[7:0];
             end
             default: begin
               // No configured fields are captured on this beat.
