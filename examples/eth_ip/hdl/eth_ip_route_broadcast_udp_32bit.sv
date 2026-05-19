@@ -1,4 +1,33 @@
-localparam int PARSE_BEATS = {{ plan.parse_beats }};
+// eth_ip_route_broadcast_udp_32bit generated with pyhdlweaver by Jakob Gross
+// https://github.com/jakobgross/pyhdlweaver
+
+module eth_ip_route_broadcast_udp_32bit #(
+  parameter int DATA_WIDTH = 32,
+  parameter int KEEP_WIDTH = DATA_WIDTH / 8,
+  parameter int TDEST_WIDTH = 4
+) (
+  input  logic clk,
+  input  logic rst,
+
+  input  logic [DATA_WIDTH-1:0] s_axis_tdata,
+  input  logic [KEEP_WIDTH-1:0] s_axis_tkeep,
+  input  logic s_axis_tlast,
+  input  logic s_axis_tuser,
+  input  logic s_axis_tvalid,
+  output logic s_axis_tready,
+
+  output logic [DATA_WIDTH-1:0] m_axis_tdata,
+  output logic [KEEP_WIDTH-1:0] m_axis_tkeep,
+  output logic m_axis_tlast,
+  output logic m_axis_tuser,
+  output logic [TDEST_WIDTH-1:0] m_axis_tdest,
+  output logic m_axis_tvalid,
+  input  logic m_axis_tready,
+
+  input  logic config_valid
+);
+
+localparam int PARSE_BEATS = 9;
 
 typedef enum logic [1:0] {
   // Capture fixed parse-region fields.
@@ -10,7 +39,7 @@ typedef enum logic [1:0] {
 } state_t;
 
 state_t state;
-logic [{{ beat_count_width - 1 }}:0] beat_count;
+logic [3:0] beat_count;
 logic sticky_tuser;
 logic parser_drop;
 logic frame_started;
@@ -21,12 +50,14 @@ logic drop_next;
 logic [TDEST_WIDTH-1:0] route_tdest_next;
 logic [TDEST_WIDTH-1:0] route_tdest_reg;
 
-{% for declaration in field_declarations %}
-{{ declaration }}
-{% endfor %}
-{% for declaration in comb_declarations %}
-{{ declaration }}
-{% endfor %}
+logic [15:0] eth_ethertype_reg;
+logic [7:0] ip_version_ihl_reg;
+logic [15:0] ip_total_length_reg;
+logic [15:0] ip_flags_frag_reg;
+logic [7:0] ip_protocol_reg;
+logic [31:0] ip_src_reg;
+logic [31:0] ip_dst_reg;
+logic [31:0] ip_dst_comb;
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign payload_fire = (state == ST_FORWARD) && s_axis_tvalid && s_axis_tready;
@@ -47,35 +78,23 @@ assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;
 // Drive the selected route for every forwarded payload beat.
 assign m_axis_tdest = route_tdest_reg;
 
-{% for block in comb_bypass_blocks %}
-{{ block }}
-
-{% endfor %}
-{% if plan.drop_conditions %}
 always_comb begin
-  // Combine all configured drop checks into one parse decision.
-  drop_next = 1'b0;
-{% for condition in plan.drop_conditions %}
-  drop_next = drop_next | {{ condition.expression }};
-{% endfor %}
+  ip_dst_comb = ip_dst_reg;
+  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+    ip_dst_comb[15:8] = s_axis_tdata[7:0];
+    ip_dst_comb[7:0] = s_axis_tdata[15:8];
+  end
 end
-{% else %}
+
 // No drop actions are configured for this parser.
 assign drop_next = 1'b0;
-{% endif %}
 
-{% if plan.route_conditions %}
 always_comb begin
   // Start with the default route and let matching route actions override it.
-  route_tdest_next = {{ default_tdest_literal }};
-{% for condition in plan.route_conditions %}
-  if {{ condition.expression }} route_tdest_next = {{ condition.destination_literal }};
-{% endfor %}
+  route_tdest_next = 4'h3;
+  if (ip_protocol_reg == 8'h11) route_tdest_next = 4'h1;
+  if (ip_dst_comb == 32'hffffffff) route_tdest_next = 4'h0;
 end
-{% else %}
-// No route actions are configured, so use the default destination.
-assign route_tdest_next = {{ default_tdest_literal }};
-{% endif %}
 
 always_ff @(posedge clk) begin
   if (rst) begin
@@ -85,12 +104,13 @@ always_ff @(posedge clk) begin
     parser_drop <= 1'b0;
     frame_started <= 1'b0;
     route_tdest_reg <= '0;
-{% for assignment in field_reset_assignments %}
-    {{ assignment }}
-{% endfor %}
-{% for condition in plan.drop_conditions %}
-    {{ condition.counter_name }} <= 32'd0;
-{% endfor %}
+    eth_ethertype_reg <= 16'd0;
+    ip_version_ihl_reg <= 8'd0;
+    ip_total_length_reg <= 16'd0;
+    ip_flags_frag_reg <= 16'd0;
+    ip_protocol_reg <= 8'd0;
+    ip_src_reg <= 32'd0;
+    ip_dst_reg <= 32'd0;
   end else begin
     if (parse_fire || payload_fire || drop_fire) begin
       sticky_tuser <= sticky_tuser | s_axis_tuser;
@@ -101,9 +121,34 @@ always_ff @(posedge clk) begin
         // Count fixed-header beats and capture configured fields.
         if (parse_fire) begin
           case (beat_count)
-{% for item in field_capture_case_items %}
-{{ item }}
-{% endfor %}
+            3: begin
+              eth_ethertype_reg[15:8] <= s_axis_tdata[7:0];
+              eth_ethertype_reg[7:0] <= s_axis_tdata[15:8];
+              ip_version_ihl_reg[7:0] <= s_axis_tdata[23:16];
+            end
+            4: begin
+              ip_total_length_reg[15:8] <= s_axis_tdata[7:0];
+              ip_total_length_reg[7:0] <= s_axis_tdata[15:8];
+            end
+            5: begin
+              ip_flags_frag_reg[15:8] <= s_axis_tdata[7:0];
+              ip_flags_frag_reg[7:0] <= s_axis_tdata[15:8];
+              ip_protocol_reg[7:0] <= s_axis_tdata[31:24];
+            end
+            6: begin
+              ip_src_reg[31:24] <= s_axis_tdata[23:16];
+              ip_src_reg[23:16] <= s_axis_tdata[31:24];
+            end
+            7: begin
+              ip_src_reg[15:8] <= s_axis_tdata[7:0];
+              ip_src_reg[7:0] <= s_axis_tdata[15:8];
+              ip_dst_reg[31:24] <= s_axis_tdata[23:16];
+              ip_dst_reg[23:16] <= s_axis_tdata[31:24];
+            end
+            8: begin
+              ip_dst_reg[15:8] <= s_axis_tdata[7:0];
+              ip_dst_reg[7:0] <= s_axis_tdata[15:8];
+            end
             default: begin
               // No configured fields are captured on this beat.
             end
@@ -123,9 +168,6 @@ always_ff @(posedge clk) begin
               // Drop before any payload beat has been forwarded.
               state <= ST_DROP;
               parser_drop <= 1'b1;
-{% for condition in plan.drop_conditions %}
-              if ({{ condition.expression }}) {{ condition.counter_name }} <= {{ condition.counter_name }} + 32'd1;
-{% endfor %}
             end else begin
               // Header passed validation. Begin forwarding payload beats.
               state <= ST_FORWARD;
@@ -169,3 +211,6 @@ always_ff @(posedge clk) begin
     endcase
   end
 end
+
+
+endmodule

@@ -23,6 +23,8 @@ class SidebandSystemVerilogGenerator(SystemVerilogGenerator):
             plan=plan,
             beat_count_width=counter_width(plan.parse_beats),
             field_declarations=field_emitter.emit_declarations(),
+            comb_declarations=field_emitter.emit_comb_declarations(),
+            comb_bypass_blocks=field_emitter.emit_comb_bypass_blocks(),
             field_reset_assignments=field_emitter.emit_reset_assignments(),
             field_capture_case_items=field_emitter.emit_capture_case_items(),
             default_tdest_literal=sv_int(4, plan.default_tdest),

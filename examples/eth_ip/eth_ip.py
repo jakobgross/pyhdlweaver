@@ -1,4 +1,4 @@
-from pyhdlweaver.actions import DropOnMismatch
+from pyhdlweaver.actions import DropOnMismatch, RouteByValue
 from pyhdlweaver.protocols.definitions.field import Field
 from pyhdlweaver.protocols import SidebandProtocol
 
@@ -61,5 +61,25 @@ IP_FORWARD_UDP_FIELDS[IP_FORWARD_UDP_FIELDS.index(IP_PROTOCOL)] = IP_PROTOCOL.wi
 IP_FORWARD_UDP_PARSER = SidebandProtocol(
     name="eth_ip_forward_udp",
     fields=IP_FORWARD_UDP_FIELDS,
+    total_length=IP_PAYLOAD_OFFSET,
+)
+
+IP_BROADCAST = 0xFFFFFFFF
+
+# Broadcast -> tdest 0, UDP -> tdest 1, everything else -> tdest 3.
+# ip_dst is captured on the final parse beat on a 32-bit bus (bytes 32-33 land on
+# beat 8 = PARSE_BEATS-1), so the _comb bypass path is exercised for its route check.
+IP_ROUTE_BROADCAST_UDP_FIELDS = ETH_FIELDS + [
+    IP_VERSION_IHL,
+    IP_TOTAL_LENGTH,
+    IP_FLAGS_FRAG,
+    IP_PROTOCOL.with_actions(RouteByValue(table={IP_PROTO_UDP: 1})),
+    IP_SRC,
+    IP_DST.with_actions(RouteByValue(table={IP_BROADCAST: 0}, default=3)),
+]
+
+IP_ROUTE_BROADCAST_UDP_PARSER = SidebandProtocol(
+    name="eth_ip_route_broadcast_udp",
+    fields=IP_ROUTE_BROADCAST_UDP_FIELDS,
     total_length=IP_PAYLOAD_OFFSET,
 )

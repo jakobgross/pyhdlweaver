@@ -13,7 +13,7 @@ SIM_BUILD ?= sim_build/$(TOPLEVEL)
 
 COMPILE_ARGS += -g2012
 
-.PHONY: test_eth_ip_32 test_eth_ip_udp_8
+.PHONY: test_eth_ip_32 test_eth_ip_udp_8 test_eth_ip_route_broadcast_udp_32
 
 test_eth_ip_32:
 	$(MAKE) sim \
@@ -28,5 +28,12 @@ test_eth_ip_udp_8:
 		VERILOG_SOURCES=$(HDL_DIR)/eth_ip_forward_udp_8bit.sv \
 		COCOTB_TEST_MODULES=cocotb_eth_ip_forward_udp_8bit \
 		SIM_BUILD=sim_build/eth_ip_forward_udp_8bit
+
+test_eth_ip_route_broadcast_udp_32:
+	$(MAKE) sim \
+		TOPLEVEL=eth_ip_route_broadcast_udp_32bit \
+		VERILOG_SOURCES=$(HDL_DIR)/eth_ip_route_broadcast_udp_32bit.sv \
+		COCOTB_TEST_MODULES=cocotb_eth_ip_route_broadcast_udp_32bit \
+		SIM_BUILD=sim_build/eth_ip_route_broadcast_udp_32bit
 
 include $(shell cocotb-config --makefiles)/Makefile.sim

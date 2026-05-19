@@ -2,7 +2,7 @@ import pytest
 
 from examples.eth_ip.eth_ip import IP_PARSER
 from examples.eth_ip.generate_sv import generate_eth_ip_forward_udp_8bit, generate_eth_ip_parser
-from pyhdlweaver.actions import RouteByValue, RouteToAll
+from pyhdlweaver.actions import DropOnMismatch, RouteByValue, RouteToAll
 from pyhdlweaver.generators import GeneratedFile, SystemVerilogGenerator
 from pyhdlweaver.protocols import SidebandProtocol
 from pyhdlweaver.protocols.definitions import Field
@@ -52,6 +52,28 @@ def test_systemverilog_generator_requires_integer_tdest_routes():
 
     with pytest.raises(NotImplementedError, match="integer destinations"):
         SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+
+def test_systemverilog_generator_uses_comb_bypass_for_final_beat_action_field():
+    # Field at offset 4 on a 32-bit (4-byte/beat) bus lands on beat 1, which is also
+    # the final parse beat. Drop/route expressions must read the incoming tdata value
+    # via a combinational bypass wire rather than the stale registered value.
+    kind_field = Field(
+        "kind",
+        offset=4,
+        width=8,
+        actions=[DropOnMismatch(expected=0xAB, counter="bad_kind_count")],
+    )
+    protocol = SidebandProtocol(name="final_beat_drop", fields=[kind_field], total_length=8)
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+    assert "logic [7:0] kind_comb;" in generated.content
+    assert "kind_comb = kind_reg;" in generated.content
+    assert "parse_fire && beat_count == PARSE_BEATS - 1" in generated.content
+    assert "kind_comb[7:0] = s_axis_tdata[7:0];" in generated.content
+    assert "drop_next = drop_next | (kind_comb != 8'hab);" in generated.content
+    assert "kind_reg" not in generated.content.split("drop_next")[1].split(";")[0]
 
 
 def test_systemverilog_generator_rejects_route_to_all_for_tdest():

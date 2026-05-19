@@ -38,6 +38,7 @@ class SystemVerilogGenerator(CodeGenerator):
         stream: AxisStream,
         module_name: str | None = None,
     ) -> GeneratedFile:
+        """Dispatch generation to the subgenerator that matches the protocol kind."""
         if isinstance(protocol, SidebandProtocol):
             from pyhdlweaver.generators.backends.systemverilog.sideband_systemverilog_generator import (
                 SidebandSystemVerilogGenerator,
@@ -60,8 +61,15 @@ class SystemVerilogGenerator(CodeGenerator):
         stream: AxisStream,
         module_name: str | None,
     ) -> GenerationPlan:
+        """Derive a GenerationPlan from a protocol and stream, resolving all field actions into typed conditions."""
         layout = StreamLayout(stream, byte_offset=0)
         parse_beats = layout.header_beats(protocol.fields)
+        final_beat = parse_beats - 1
+        final_beat_fields: set[str] = {
+            field_.name
+            for field_ in protocol.fields
+            if any(beat.beat == final_beat for beat in layout.field_beats(field_))
+        }
         config_ports: dict[str, ConfigPort] = {}
         drop_conditions: list[DropCondition] = []
         route_conditions: list[RouteCondition] = []
@@ -72,12 +80,12 @@ class SystemVerilogGenerator(CodeGenerator):
                 if isinstance(action, DropAction):
                     drop_conditions.append(
                         DropCondition(
-                            expression=self.drop_expression(field_, action, config_ports),
+                            expression=self.drop_expression(field_, action, config_ports, final_beat_fields),
                             counter_name=action.counter_name(field_.name),
                         )
                     )
                 elif isinstance(action, (RouteByValue, RouteByRange, RouteByRegister, RouteByRegistersRange)):
-                    conditions, action_default = self.route_conditions(field_, action, config_ports)
+                    conditions, action_default = self.route_conditions(field_, action, config_ports, final_beat_fields)
                     route_conditions.extend(conditions)
                     if action_default is not None:
                         default_tdest = action_default
@@ -107,8 +115,14 @@ class SystemVerilogGenerator(CodeGenerator):
         field_: Field,
         action: DropAction,
         config_ports: dict[str, ConfigPort],
+        final_beat_fields: set[str],
     ) -> str:
-        value = f"{field_.name}_reg"
+        """Return a SystemVerilog boolean expression that is true when the field value triggers a drop.
+
+        Fields in final_beat_fields are read via their _comb bypass wire to avoid a
+        nonblocking-assignment read-after-write hazard on the last parse beat.
+        """
+        value = f"{field_.name}_comb" if field_.name in final_beat_fields else f"{field_.name}_reg"
         if isinstance(action, DropOnMismatch):
             expected = sv_int(field_.width, action.expected)
             if action.mask is None:
@@ -147,8 +161,14 @@ class SystemVerilogGenerator(CodeGenerator):
         field_: Field,
         action: RouteByValue | RouteByRange | RouteByRegister | RouteByRegistersRange,
         config_ports: dict[str, ConfigPort],
+        final_beat_fields: set[str],
     ) -> tuple[list[RouteCondition], int | None]:
-        value = f"{field_.name}_reg"
+        """Return RouteCondition objects and an optional default tdest for a routing action on field_.
+
+        Fields in final_beat_fields are read via their _comb bypass wire to avoid a
+        nonblocking-assignment read-after-write hazard on the last parse beat.
+        """
+        value = f"{field_.name}_comb" if field_.name in final_beat_fields else f"{field_.name}_reg"
         if isinstance(action, RouteByValue):
             conditions = []
             for match_value, destination in action.table.items():
@@ -210,11 +230,13 @@ class SystemVerilogGenerator(CodeGenerator):
         name: str,
         width: int,
     ) -> str:
+        """Return the port name for a config register, creating a ConfigPort entry on first use."""
         port_name = f"cfg_{sv_identifier(name)}"
         config_ports.setdefault(port_name, ConfigPort(name=port_name, width=width))
         return port_name
 
     def render_module(self, plan: GenerationPlan, body: str) -> str:
+        """Wrap a rendered body string in the module template and return the full file content."""
         return self.renderer.render(
             "module.sv.j2",
             plan=plan,

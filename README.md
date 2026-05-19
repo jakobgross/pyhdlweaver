@@ -273,8 +273,6 @@ pyhdlweaver/
 - [x] End-to-end test: ETH+IP definition generates a SystemVerilog file
 
 #### bugs present
-- [ ] sideband_body.sv.j2 (line 94): drop and route decisions can see stale field values if the action field is captured on the final parse beat. Field registers are assigned with nonblocking <=, then drop_next / route_tdest_next are used in the same cycle. Current UDP example is fine because ip_protocol is captured earlier, but the generator is not generally correct for final-beat action fields.
-
 - [ ] module.sv.j2 (line 27), drop.py (line 91), route.py (line 90): register-based actions expose config ports, but default_value, min_default, max_default, and config_valid are not actually used in generated HDL. Since we discussed default values for register actions, this is an implementation gap.
 
 - [ ] systemverilog_generator.py (line 160), sideband_systemverilog_generator.py (line 28): route literals are hard-coded as 4-bit values even though the module has TDEST_WIDTH. Works with the default, but the parameter is not really honored.
