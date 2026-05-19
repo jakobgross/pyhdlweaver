@@ -264,17 +264,30 @@ pyhdlweaver/
 - [x] Tests for action validation and counter generation
 
 ### Milestone 4 - SystemVerilog Generator
-- [ ] `CodeGenerator` abstract base class
-- [ ] `SystemVerilogGenerator`
-- [ ] Jinja2 template: module skeleton with clock/reset
-- [ ] Jinja2 template: FSM (IDLE / HEADER / FORWARD / DROP states)
-- [ ] Jinja2 template: field extraction per beat and bus width
-- [ ] Jinja2 template: action logic (drop conditions, routing mux)
-- [ ] End-to-end smoke test: ETH+IP definition generates a SystemVerilog file
+- [x] `CodeGenerator` abstract base class
+- [x] `SystemVerilogGenerator`
+- [x] Jinja2 template: module skeleton with clock/reset
+- [x] Jinja2 template: FSM (IDLE / HEADER / FORWARD / DROP states)
+- [x] Jinja2 template: field extraction per beat and bus width
+- [x] Jinja2 template: action logic (drop conditions, routing mux)
+- [x] End-to-end test: ETH+IP definition generates a SystemVerilog file
+
+#### bugs present
+- [ ] sideband_body.sv.j2 (line 94): drop and route decisions can see stale field values if the action field is captured on the final parse beat. Field registers are assigned with nonblocking <=, then drop_next / route_tdest_next are used in the same cycle. Current UDP example is fine because ip_protocol is captured earlier, but the generator is not generally correct for final-beat action fields.
+
+- [ ] module.sv.j2 (line 27), drop.py (line 91), route.py (line 90): register-based actions expose config ports, but default_value, min_default, max_default, and config_valid are not actually used in generated HDL. Since we discussed default values for register actions, this is an implementation gap.
+
+- [ ] systemverilog_generator.py (line 160), sideband_systemverilog_generator.py (line 28): route literals are hard-coded as 4-bit values even though the module has TDEST_WIDTH. Works with the default, but the parameter is not really honored.
+
+- [ ] cocotb_eth_ip_parser.py (line 66): the 32-bit parser forwards from the next full beat, so IP_PAYLOAD_OFFSET=34 becomes offset 36. The tests encode that behavior. If we want exact byte forwarding for sideband parsers, the generated HDL needs byte realignment or a stated alignment restriction.
+
+- [ ] sideband_body.sv.j2 (line 16): frame_started is assigned but never read. Small cleanup item before initial commit.
 
 ### Milestone 5 - cocotb End-to-End Test
-- [ ] cocotb testbench for generated ETH+IP parser
-- [ ] Drive AXI-Stream packets into generated RTL
+- [x] cocotb testbench for generated ETH+IP parser
+- [x] Drive AXI-Stream packets into generated RTL
+- [x] Check against scapy packets
+- [x] Create a ETH_IP_UDP_ONLY sv parser that only forwards UDP packets
 - [ ] Compare parsed metadata and forwarded data against `DataPacket` golden model
 - [ ] Run test for 8, 32, and 64-bit stream widths
 - [ ] Include valid, dropped, and short-packet test vectors

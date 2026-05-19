@@ -8,9 +8,15 @@ version = "0.1.0"
 description = "Python HDL Protocol Weaver"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = ["jinja2"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
+hdl = [
+    "cocotb",
+    "cocotbext-axi",
+    "scapy",
+]
 
 [tool.setuptools.packages.find]
 include = ["pyhdlweaver*"]

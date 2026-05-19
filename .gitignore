@@ -7,3 +7,6 @@ build/
 .venv/
 .pytest_cache
 .vscode
+examples/*/hdl/results.xml
+examples/*/hdl/sim_build/
+examples/*/hdl/*.vcd

@@ -1,3 +1,4 @@
+from pyhdlweaver.actions import DropOnMismatch
 from pyhdlweaver.protocols.definitions.field import Field
 from pyhdlweaver.protocols import SidebandProtocol
 
@@ -49,5 +50,16 @@ IP_FRAG_OFFSET_MASK = 0x1FFF
 IP_PARSER = SidebandProtocol(
     name="eth_ip",
     fields=ETH_IP_FIELDS,
+    total_length=IP_PAYLOAD_OFFSET,
+)
+
+IP_FORWARD_UDP_FIELDS = ETH_IP_FIELDS.copy()
+IP_FORWARD_UDP_FIELDS[IP_FORWARD_UDP_FIELDS.index(IP_PROTOCOL)] = IP_PROTOCOL.with_actions(
+    DropOnMismatch(expected=IP_PROTO_UDP, counter="non_udp_drop_count")
+)
+
+IP_FORWARD_UDP_PARSER = SidebandProtocol(
+    name="eth_ip_forward_udp",
+    fields=IP_FORWARD_UDP_FIELDS,
     total_length=IP_PAYLOAD_OFFSET,
 )

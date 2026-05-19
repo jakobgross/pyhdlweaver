@@ -1,0 +1,164 @@
+localparam int PARSE_BEATS = {{ plan.parse_beats }};
+
+typedef enum logic [1:0] {
+  // Capture fixed parse-region fields.
+  ST_PARSE,
+  // Forward payload beats after a clean parse.
+  ST_FORWARD,
+  // Consume and suppress the rest of a dropped frame.
+  ST_DROP
+} state_t;
+
+state_t state;
+logic [{{ beat_count_width - 1 }}:0] beat_count;
+logic sticky_tuser;
+logic parser_drop;
+logic frame_started;
+logic payload_fire;
+logic parse_fire;
+logic drop_fire;
+logic drop_next;
+logic [TDEST_WIDTH-1:0] route_tdest_next;
+logic [TDEST_WIDTH-1:0] route_tdest_reg;
+
+{% for declaration in field_declarations %}
+{{ declaration }}
+{% endfor %}
+
+assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
+assign payload_fire = (state == ST_FORWARD) && s_axis_tvalid && s_axis_tready;
+assign drop_fire = (state == ST_DROP) && s_axis_tvalid && s_axis_tready;
+
+// Accept parse and drop beats immediately. Backpressure only while forwarding.
+assign s_axis_tready = (state == ST_FORWARD) ? m_axis_tready : 1'b1;
+
+// Forward payload data unchanged after the parser accepts the fixed header.
+assign m_axis_tdata = s_axis_tdata;
+assign m_axis_tkeep = s_axis_tkeep;
+assign m_axis_tlast = s_axis_tlast;
+assign m_axis_tvalid = (state == ST_FORWARD) && s_axis_tvalid;
+
+// Preserve upstream errors and mark parser-detected drops on forwarded frames.
+assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;
+
+// Drive the selected route for every forwarded payload beat.
+assign m_axis_tdest = route_tdest_reg;
+
+{% if plan.drop_conditions %}
+always_comb begin
+  // Combine all configured drop checks into one parse decision.
+  drop_next = 1'b0;
+{% for condition in plan.drop_conditions %}
+  drop_next = drop_next | {{ condition.expression }};
+{% endfor %}
+end
+{% else %}
+// No drop actions are configured for this parser.
+assign drop_next = 1'b0;
+{% endif %}
+
+{% if plan.route_conditions %}
+always_comb begin
+  // Start with the default route and let matching route actions override it.
+  route_tdest_next = {{ default_tdest_literal }};
+{% for condition in plan.route_conditions %}
+  if {{ condition.expression }} route_tdest_next = {{ condition.destination_literal }};
+{% endfor %}
+end
+{% else %}
+// No route actions are configured, so use the default destination.
+assign route_tdest_next = {{ default_tdest_literal }};
+{% endif %}
+
+always_ff @(posedge clk) begin
+  if (rst) begin
+    state <= ST_PARSE;
+    beat_count <= '0;
+    sticky_tuser <= 1'b0;
+    parser_drop <= 1'b0;
+    frame_started <= 1'b0;
+    route_tdest_reg <= '0;
+{% for assignment in field_reset_assignments %}
+    {{ assignment }}
+{% endfor %}
+{% for condition in plan.drop_conditions %}
+    {{ condition.counter_name }} <= 32'd0;
+{% endfor %}
+  end else begin
+    if (parse_fire || payload_fire || drop_fire) begin
+      sticky_tuser <= sticky_tuser | s_axis_tuser;
+    end
+
+    case (state)
+      ST_PARSE: begin
+        // Count fixed-header beats and capture configured fields.
+        if (parse_fire) begin
+          case (beat_count)
+{% for item in field_capture_case_items %}
+{{ item }}
+{% endfor %}
+            default: begin
+              // No configured fields are captured on this beat.
+            end
+          endcase
+
+          if (s_axis_tlast) begin
+            // Short frame ended before payload forwarding. Clear per-frame state.
+            state <= ST_PARSE;
+            beat_count <= '0;
+            sticky_tuser <= 1'b0;
+            parser_drop <= 1'b0;
+            frame_started <= 1'b0;
+          end else if (beat_count == PARSE_BEATS - 1) begin
+            // Header is complete, so latch route and choose forward or drop.
+            route_tdest_reg <= route_tdest_next;
+            if (drop_next) begin
+              // Drop before any payload beat has been forwarded.
+              state <= ST_DROP;
+              parser_drop <= 1'b1;
+{% for condition in plan.drop_conditions %}
+              if ({{ condition.expression }}) {{ condition.counter_name }} <= {{ condition.counter_name }} + 32'd1;
+{% endfor %}
+            end else begin
+              // Header passed validation. Begin forwarding payload beats.
+              state <= ST_FORWARD;
+              frame_started <= 1'b1;
+            end
+            beat_count <= '0;
+          end else begin
+            // More fixed-header beats remain.
+            beat_count <= beat_count + 1'b1;
+          end
+        end
+      end
+
+      ST_FORWARD: begin
+        // Forward payload until the stream sideband marks the frame end.
+        if (payload_fire && s_axis_tlast) begin
+          state <= ST_PARSE;
+          beat_count <= '0;
+          sticky_tuser <= 1'b0;
+          parser_drop <= 1'b0;
+          frame_started <= 1'b0;
+          route_tdest_reg <= '0;
+        end
+      end
+
+      ST_DROP: begin
+        // Consume a rejected frame without driving the output stream.
+        if (drop_fire && s_axis_tlast) begin
+          state <= ST_PARSE;
+          beat_count <= '0;
+          sticky_tuser <= 1'b0;
+          parser_drop <= 1'b0;
+          frame_started <= 1'b0;
+          route_tdest_reg <= '0;
+        end
+      end
+
+      default: begin
+        // No state update.
+      end
+    endcase
+  end
+end
