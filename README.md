@@ -282,8 +282,10 @@ pyhdlweaver/
 - [x] Check against scapy packets
 - [x] Create a ETH_IP_UDP_ONLY sv parser that only forwards UDP packets
 - [x] Include valid, dropped, and short-packet test vectors
-- [ ] Compare parsed metadata and forwarded data against `DataPacket` golden model
-- [ ] Run test for 8, 32, and 64-bit stream widths
+- [x] Run test for 8, 32, and 64-bit stream widths
+- [x] The cocotb testfiles should always recreate the sv files
+- [x] Cocotb needs multi frame tests. We need the combinations of (OK,NOK), (NOK,OK),(OK,OK),(OK,NOK,OK)
+
 
 ### Milestone 6 - AXI-Lite Register Map
 - [ ] Register map generation from protocol + actions
@@ -328,6 +330,21 @@ pyhdlweaver/
 - [ ] SBE message as `DiscriminatedProtocol`
 - [ ] Example: generate parser from real exchange SBE schema
 
+### Milestone 12 - C++ Software Parser Generator
+- [ ] `CppGenerator`
+- [ ] Jinja2 template: C++ header and source files
+- [ ] Runtime library for parsing from raw byte buffers
+- [ ] End-to-end test: generated C++ parser produces same output as HDL parser for
+
+### Milestone 13 - Prioritize action types and multiple actions per field
+- [ ] Define action priority (validation before routing, capture at any point, etc.)
+- [ ] Update code generation logic to handle multiple actions per field according to priority rules
+
+### Milestone 14 - GUI for Protocol Definition
+- [ ] Simple qt GUI to define protocols visually
+- [ ] Generate protocol definition Python file from GUI input
+- [ ] save to xml/json for later loading
+- [ ] Round-trip test: define in GUI, save to XML, load from XML, compare to Python definition
 ---
 
 ## Dependencies

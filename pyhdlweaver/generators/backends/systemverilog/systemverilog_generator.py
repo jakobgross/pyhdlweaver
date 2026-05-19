@@ -85,7 +85,7 @@ class SystemVerilogGenerator(CodeGenerator):
                         )
                     )
                 elif isinstance(action, (RouteByValue, RouteByRange, RouteByRegister, RouteByRegistersRange)):
-                    conditions, action_default = self.route_conditions(field_, action, config_ports, final_beat_fields)
+                    conditions, action_default = self.route_conditions(field_, action, config_ports, final_beat_fields, stream.tdest_width)
                     route_conditions.extend(conditions)
                     if action_default is not None:
                         default_tdest = action_default
@@ -104,14 +104,6 @@ class SystemVerilogGenerator(CodeGenerator):
             raise ValueError(
                 f"Destination {max_dest} does not fit in tdest_width={stream.tdest_width} bits"
             )
-        route_conditions = [
-            RouteCondition(
-                expression=rc.expression,
-                destination=rc.destination,
-                destination_literal=sv_int(stream.tdest_width, rc.destination),
-            )
-            for rc in route_conditions
-        ]
 
         return GenerationPlan(
             protocol=protocol,
@@ -177,6 +169,7 @@ class SystemVerilogGenerator(CodeGenerator):
         action: RouteByValue | RouteByRange | RouteByRegister | RouteByRegistersRange,
         config_ports: dict[str, ConfigPort],
         final_beat_fields: set[str],
+        tdest_width: int,
     ) -> tuple[list[RouteCondition], int | None]:
         """Return RouteCondition objects and an optional default tdest for a routing action on field_.
 
@@ -192,7 +185,7 @@ class SystemVerilogGenerator(CodeGenerator):
                     RouteCondition(
                         expression=f"({value} == {sv_int(field_.width, match_value)})",
                         destination=route_destination,
-                        destination_literal=sv_int(4, route_destination),
+                        destination_literal=sv_int(tdest_width, route_destination),
                     )
                 )
             return conditions, optional_tdest(action.default)
@@ -207,7 +200,7 @@ class SystemVerilogGenerator(CodeGenerator):
                             f"({value} <= {sv_int(field_.width, max_value)}))"
                         ),
                         destination=route_destination,
-                        destination_literal=sv_int(4, route_destination),
+                        destination_literal=sv_int(tdest_width, route_destination),
                     )
                 )
             return conditions, optional_tdest(action.default)
@@ -223,7 +216,7 @@ class SystemVerilogGenerator(CodeGenerator):
                 RouteCondition(
                     expression=expression,
                     destination=destination,
-                    destination_literal=sv_int(4, destination),
+                    destination_literal=sv_int(tdest_width, destination),
                 )
             ], optional_tdest(action.default)
         if isinstance(action, RouteByRegistersRange):
@@ -234,7 +227,7 @@ class SystemVerilogGenerator(CodeGenerator):
                 RouteCondition(
                     expression=f"(({value} >= {min_register}) && ({value} <= {max_register}))",
                     destination=destination,
-                    destination_literal=sv_int(4, destination),
+                    destination_literal=sv_int(tdest_width, destination),
                 )
             ], optional_tdest(action.default)
         raise NotImplementedError(f"Unsupported route action: {type(action).__name__}")

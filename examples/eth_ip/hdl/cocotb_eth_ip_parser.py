@@ -95,6 +95,11 @@ async def send_frame(dut, frame_bytes: bytes, tuser=None) -> AxiStreamFrame:
     return await sink.recv()
 
 
+async def send_one(source, sink, frame_bytes: bytes, tuser=0) -> AxiStreamFrame:
+    await source.send(AxiStreamFrame(frame_bytes, tuser=tuser))
+    return await sink.recv()
+
+
 def assert_forwarded_frame(frame: AxiStreamFrame, frame_bytes: bytes) -> None:
     assert bytes(frame.tdata) == frame_bytes[forwarded_offset():]
     assert int(frame.tdest) == 0
@@ -161,3 +166,79 @@ async def propagates_tuser_seen_after_payload_forwarding_started(dut):
     assert_forwarded_frame(frame, frame_bytes)
     assert frame_tuser_values(frame)[:DATA_WIDTH_BYTES] == [0] * DATA_WIDTH_BYTES
     assert all(value == 1 for value in frame_tuser_values(frame)[DATA_WIDTH_BYTES:])
+
+
+@cocotb.test()
+async def clean_then_error_frame(dut):
+    """Forward a clean frame (tuser=0 out), then a frame with tuser=1 on a parse beat."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    frame_bytes, _ = udp_frame()
+    error_tuser = tuser_on_beat(frame_bytes, beat_index=0)
+
+    frame = await send_one(source, sink, frame_bytes)
+    assert_forwarded_frame(frame, frame_bytes)
+    assert int(frame.tuser) == 0
+
+    frame = await send_one(source, sink, frame_bytes, tuser=error_tuser)
+    assert_forwarded_frame(frame, frame_bytes)
+    assert all(value == 1 for value in frame_tuser_values(frame))
+
+
+@cocotb.test()
+async def error_frame_then_clean(dut):
+    """Forward a frame with tuser=1, then verify the next frame has tuser=0 (sticky cleared)."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    frame_bytes, _ = udp_frame()
+    error_tuser = tuser_on_beat(frame_bytes, beat_index=0)
+
+    frame = await send_one(source, sink, frame_bytes, tuser=error_tuser)
+    assert all(value == 1 for value in frame_tuser_values(frame))
+
+    frame = await send_one(source, sink, frame_bytes)
+    assert_forwarded_frame(frame, frame_bytes)
+    assert int(frame.tuser) == 0
+
+
+@cocotb.test()
+async def two_clean_frames(dut):
+    """Forward two consecutive clean frames."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    frame_bytes, _ = udp_frame()
+    for _ in range(2):
+        frame = await send_one(source, sink, frame_bytes)
+        assert_forwarded_frame(frame, frame_bytes)
+        assert int(frame.tuser) == 0
+
+
+@cocotb.test()
+async def clean_error_clean(dut):
+    """Forward clean, then error, then clean to verify sticky_tuser resets between frames."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    frame_bytes, _ = udp_frame()
+    error_tuser = tuser_on_beat(frame_bytes, beat_index=0)
+
+    frame = await send_one(source, sink, frame_bytes)
+    assert int(frame.tuser) == 0
+
+    frame = await send_one(source, sink, frame_bytes, tuser=error_tuser)
+    assert all(value == 1 for value in frame_tuser_values(frame))
+
+    frame = await send_one(source, sink, frame_bytes)
+    assert_forwarded_frame(frame, frame_bytes)
+    assert int(frame.tuser) == 0

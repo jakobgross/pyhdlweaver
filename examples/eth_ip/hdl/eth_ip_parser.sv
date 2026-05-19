@@ -41,7 +41,6 @@ state_t state;
 logic [3:0] beat_count;
 logic sticky_tuser;
 logic parser_drop;
-logic frame_started;
 logic payload_fire;
 logic parse_fire;
 logic drop_fire;
@@ -97,7 +96,6 @@ always_ff @(posedge clk) begin
     beat_count <= '0;
     sticky_tuser <= 1'b0;
     parser_drop <= 1'b0;
-    frame_started <= 1'b0;
     route_tdest_reg <= '0;
     eth_ethertype_reg <= 16'd0;
     ip_version_ihl_reg <= 8'd0;
@@ -155,7 +153,6 @@ always_ff @(posedge clk) begin
             beat_count <= '0;
             sticky_tuser <= 1'b0;
             parser_drop <= 1'b0;
-            frame_started <= 1'b0;
           end else if (beat_count == PARSE_BEATS - 1) begin
             // Header is complete, so latch route and choose forward or drop.
             route_tdest_reg <= route_tdest_next;
@@ -166,7 +163,6 @@ always_ff @(posedge clk) begin
             end else begin
               // Header passed validation. Begin forwarding payload beats.
               state <= ST_FORWARD;
-              frame_started <= 1'b1;
             end
             beat_count <= '0;
           end else begin
@@ -183,7 +179,6 @@ always_ff @(posedge clk) begin
           beat_count <= '0;
           sticky_tuser <= 1'b0;
           parser_drop <= 1'b0;
-          frame_started <= 1'b0;
           route_tdest_reg <= '0;
         end
       end
@@ -195,7 +190,6 @@ always_ff @(posedge clk) begin
           beat_count <= '0;
           sticky_tuser <= 1'b0;
           parser_drop <= 1'b0;
-          frame_started <= 1'b0;
           route_tdest_reg <= '0;
         end
       end

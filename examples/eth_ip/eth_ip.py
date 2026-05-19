@@ -1,3 +1,11 @@
+"""
+Ethernet and IPv4 field definitions and protocol variants used as generator inputs.
+
+Three parsers are defined here:
+- IP_PARSER: captures all Ethernet and IPv4 header fields, no filtering.
+- IP_FORWARD_UDP_PARSER: drops non-UDP frames and forwards UDP payloads.
+- IP_ROUTE_BROADCAST_UDP_PARSER: routes broadcast to tdest 0, UDP to tdest 1, others to tdest 3.
+"""
 from pyhdlweaver.actions import DropOnMismatch, RouteByValue
 from pyhdlweaver.protocols.definitions.field import Field
 from pyhdlweaver.protocols import SidebandProtocol

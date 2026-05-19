@@ -77,6 +77,19 @@ async def send_frame(dut, frame_bytes: bytes) -> tuple[AxiStreamSink, AxiStreamS
     return sink, source
 
 
+async def forward_one(source, sink, frame_bytes: bytes) -> AxiStreamFrame:
+    await source.send(AxiStreamFrame(frame_bytes, tuser=0))
+    return await sink.recv()
+
+
+async def drop_one(source, sink, frame_bytes: bytes, dut) -> None:
+    await source.send(AxiStreamFrame(frame_bytes, tuser=0))
+    for _ in range(len(frame_bytes) + 8):
+        await RisingEdge(dut.clk)
+    assert source.idle()
+    assert sink.empty()
+
+
 @cocotb.test()
 async def forwards_udp_packet_on_8_bit_axi(dut):
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
@@ -111,3 +124,80 @@ async def drops_tcp_packet_on_8_bit_axi(dut):
 
     await Timer(CLOCK_PERIOD_NS, unit="ns")
     assert sink.empty()
+
+
+@cocotb.test()
+async def udp_then_tcp(dut):
+    """Forward a UDP frame, then drop a TCP frame."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes, _ = udp_frame()
+    tcp_bytes, _ = tcp_frame()
+
+    frame = await forward_one(source, sink, udp_bytes)
+    assert bytes(frame.tdata) == udp_bytes[IP_PAYLOAD_OFFSET:]
+    assert int(frame.tuser) == 0
+
+    await drop_one(source, sink, tcp_bytes, dut)
+    assert int(dut.non_udp_drop_count.value) == 1
+
+
+@cocotb.test()
+async def tcp_then_udp(dut):
+    """Drop a TCP frame, then forward a UDP frame."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes, _ = udp_frame()
+    tcp_bytes, _ = tcp_frame()
+
+    await drop_one(source, sink, tcp_bytes, dut)
+    assert int(dut.non_udp_drop_count.value) == 1
+
+    frame = await forward_one(source, sink, udp_bytes)
+    assert bytes(frame.tdata) == udp_bytes[IP_PAYLOAD_OFFSET:]
+    assert int(frame.tuser) == 0
+
+
+@cocotb.test()
+async def two_udp_frames(dut):
+    """Forward two consecutive UDP frames."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes, _ = udp_frame()
+    for _ in range(2):
+        frame = await forward_one(source, sink, udp_bytes)
+        assert bytes(frame.tdata) == udp_bytes[IP_PAYLOAD_OFFSET:]
+        assert int(frame.tuser) == 0
+
+    assert int(dut.non_udp_drop_count.value) == 0
+
+
+@cocotb.test()
+async def udp_tcp_udp(dut):
+    """Forward a UDP frame, drop a TCP frame, then forward a UDP frame again."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes, _ = udp_frame()
+    tcp_bytes, _ = tcp_frame()
+
+    frame = await forward_one(source, sink, udp_bytes)
+    assert bytes(frame.tdata) == udp_bytes[IP_PAYLOAD_OFFSET:]
+
+    await drop_one(source, sink, tcp_bytes, dut)
+    assert int(dut.non_udp_drop_count.value) == 1
+
+    frame = await forward_one(source, sink, udp_bytes)
+    assert bytes(frame.tdata) == udp_bytes[IP_PAYLOAD_OFFSET:]
+    assert int(dut.non_udp_drop_count.value) == 1

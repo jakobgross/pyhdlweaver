@@ -83,6 +83,11 @@ def make_frame(dst_ip: str, proto: str = "udp") -> bytes:
     return raw(packet)
 
 
+async def route_one(source, sink, frame_bytes: bytes) -> AxiStreamFrame:
+    await source.send(AxiStreamFrame(frame_bytes, tuser=0))
+    return await sink.recv()
+
+
 @cocotb.test()
 async def routes_unicast_udp_to_tdest_1(dut):
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
@@ -141,3 +146,78 @@ async def routes_broadcast_udp_to_tdest_0(dut):
     assert int(frame.tuser) == 0
     assert int(dut.ip_dst_reg.value) == IP_BROADCAST
     assert int(dut.ip_protocol_reg.value) == IP_PROTO_UDP
+
+
+@cocotb.test()
+async def udp_then_tcp(dut):
+    """Route a unicast UDP frame to tdest 1, then a unicast TCP frame to tdest 3."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes = make_frame(dst_ip="10.0.0.1", proto="udp")
+    tcp_bytes = make_frame(dst_ip="10.0.0.1", proto="tcp")
+
+    frame = await route_one(source, sink, udp_bytes)
+    assert int(frame.tdest) == TDEST_UDP
+
+    frame = await route_one(source, sink, tcp_bytes)
+    assert int(frame.tdest) == TDEST_OTHER
+
+
+@cocotb.test()
+async def tcp_then_udp(dut):
+    """Route a unicast TCP frame to tdest 3, then a unicast UDP frame to tdest 1."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes = make_frame(dst_ip="10.0.0.1", proto="udp")
+    tcp_bytes = make_frame(dst_ip="10.0.0.1", proto="tcp")
+
+    frame = await route_one(source, sink, tcp_bytes)
+    assert int(frame.tdest) == TDEST_OTHER
+
+    frame = await route_one(source, sink, udp_bytes)
+    assert int(frame.tdest) == TDEST_UDP
+
+
+@cocotb.test()
+async def two_udp_frames(dut):
+    """Route two consecutive unicast UDP frames to tdest 1."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes = make_frame(dst_ip="10.0.0.1", proto="udp")
+
+    for _ in range(2):
+        frame = await route_one(source, sink, udp_bytes)
+        assert bytes(frame.tdata) == udp_bytes[forwarded_offset():]
+        assert int(frame.tdest) == TDEST_UDP
+
+
+@cocotb.test()
+async def udp_tcp_udp(dut):
+    """Route UDP to tdest 1, TCP to tdest 3, then UDP to tdest 1 again."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    udp_bytes = make_frame(dst_ip="10.0.0.1", proto="udp")
+    tcp_bytes = make_frame(dst_ip="10.0.0.1", proto="tcp")
+
+    frame = await route_one(source, sink, udp_bytes)
+    assert bytes(frame.tdata) == udp_bytes[forwarded_offset():]
+    assert int(frame.tdest) == TDEST_UDP
+
+    frame = await route_one(source, sink, tcp_bytes)
+    assert int(frame.tdest) == TDEST_OTHER
+
+    frame = await route_one(source, sink, udp_bytes)
+    assert bytes(frame.tdata) == udp_bytes[forwarded_offset():]
+    assert int(frame.tdest) == TDEST_UDP

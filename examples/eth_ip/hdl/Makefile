@@ -16,6 +16,7 @@ COMPILE_ARGS += -g2012
 .PHONY: test_eth_ip_32 test_eth_ip_udp_8 test_eth_ip_route_broadcast_udp_32
 
 test_eth_ip_32:
+	python3 $(REPO_ROOT)/examples/eth_ip/generate_sv.py --write
 	$(MAKE) sim \
 		TOPLEVEL=eth_ip_parser \
 		VERILOG_SOURCES=$(HDL_DIR)/eth_ip_parser.sv \
@@ -23,6 +24,7 @@ test_eth_ip_32:
 		SIM_BUILD=sim_build/eth_ip_parser
 
 test_eth_ip_udp_8:
+	python3 $(REPO_ROOT)/examples/eth_ip/generate_sv.py --forward-udp-8bit --write
 	$(MAKE) sim \
 		TOPLEVEL=eth_ip_forward_udp_8bit \
 		VERILOG_SOURCES=$(HDL_DIR)/eth_ip_forward_udp_8bit.sv \
@@ -30,6 +32,7 @@ test_eth_ip_udp_8:
 		SIM_BUILD=sim_build/eth_ip_forward_udp_8bit
 
 test_eth_ip_route_broadcast_udp_32:
+	python3 $(REPO_ROOT)/examples/eth_ip/generate_sv.py --route-broadcast-udp-32bit --write
 	$(MAKE) sim \
 		TOPLEVEL=eth_ip_route_broadcast_udp_32bit \
 		VERILOG_SOURCES=$(HDL_DIR)/eth_ip_route_broadcast_udp_32bit.sv \

@@ -1,3 +1,9 @@
+"""
+Generate SystemVerilog for the Ethernet/IP example parsers.
+
+Run with --write to write all files to examples/eth_ip/hdl/, or pass a specific
+flag (--forward-udp-8bit, --route-broadcast-udp-32bit) to generate one variant.
+"""
 import sys
 from argparse import ArgumentParser
 from pathlib import Path

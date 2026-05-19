@@ -147,3 +147,84 @@ async def does_not_route_old_port_after_reconfiguration(dut):
 
     assert bytes(frame.tdata) == frame_bytes[PARSE_BYTES:]
     assert int(frame.tdest) == TDEST_OTHER
+
+
+async def route_one(source, sink, frame_bytes: bytes) -> AxiStreamFrame:
+    await source.send(AxiStreamFrame(frame_bytes, tuser=0))
+    return await sink.recv()
+
+
+@cocotb.test()
+async def matching_then_other(dut):
+    """Route a matching-port frame to tdest 0, then an other-port frame to tdest 1."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    matching = make_frame(dport=DEFAULT_DST_PORT)
+    other = make_frame(dport=5678)
+
+    frame = await route_one(source, sink, matching)
+    assert bytes(frame.tdata) == matching[PARSE_BYTES:]
+    assert int(frame.tdest) == TDEST_MATCH
+
+    frame = await route_one(source, sink, other)
+    assert int(frame.tdest) == TDEST_OTHER
+
+
+@cocotb.test()
+async def other_then_matching(dut):
+    """Route an other-port frame to tdest 1, then a matching-port frame to tdest 0."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    matching = make_frame(dport=DEFAULT_DST_PORT)
+    other = make_frame(dport=5678)
+
+    frame = await route_one(source, sink, other)
+    assert int(frame.tdest) == TDEST_OTHER
+
+    frame = await route_one(source, sink, matching)
+    assert bytes(frame.tdata) == matching[PARSE_BYTES:]
+    assert int(frame.tdest) == TDEST_MATCH
+
+
+@cocotb.test()
+async def two_matching_frames(dut):
+    """Route two consecutive matching-port frames to tdest 0."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    matching = make_frame(dport=DEFAULT_DST_PORT)
+    for _ in range(2):
+        frame = await route_one(source, sink, matching)
+        assert bytes(frame.tdata) == matching[PARSE_BYTES:]
+        assert int(frame.tdest) == TDEST_MATCH
+
+
+@cocotb.test()
+async def matching_other_matching(dut):
+    """Route matching to tdest 0, other to tdest 1, then matching to tdest 0 again."""
+    cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
+    source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
+    sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)
+    await reset_dut(dut)
+
+    matching = make_frame(dport=DEFAULT_DST_PORT)
+    other = make_frame(dport=5678)
+
+    frame = await route_one(source, sink, matching)
+    assert bytes(frame.tdata) == matching[PARSE_BYTES:]
+    assert int(frame.tdest) == TDEST_MATCH
+
+    frame = await route_one(source, sink, other)
+    assert int(frame.tdest) == TDEST_OTHER
+
+    frame = await route_one(source, sink, matching)
+    assert bytes(frame.tdata) == matching[PARSE_BYTES:]
+    assert int(frame.tdest) == TDEST_MATCH
