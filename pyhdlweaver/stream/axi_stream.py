@@ -7,6 +7,7 @@ class AxisStream:
 
     data_width: int
     user_width: int = 1
+    tdest_width: int = 4
 
     def __post_init__(self):
         if self.data_width % 8 != 0:

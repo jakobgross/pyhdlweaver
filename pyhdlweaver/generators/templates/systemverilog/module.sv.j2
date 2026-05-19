@@ -4,7 +4,7 @@
 module {{ plan.module_name }} #(
   parameter int DATA_WIDTH = {{ plan.stream.data_width }},
   parameter int KEEP_WIDTH = DATA_WIDTH / 8,
-  parameter int TDEST_WIDTH = 4
+  parameter int TDEST_WIDTH = {{ plan.stream.tdest_width }}
 ) (
   input  logic clk,
   input  logic rst,

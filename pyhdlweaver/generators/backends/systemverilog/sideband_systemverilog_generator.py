@@ -42,7 +42,7 @@ class SidebandSystemVerilogGenerator(SystemVerilogGenerator):
             config_reg_update_assignments=config_reg_update_assignments,
             field_reset_assignments=field_emitter.emit_reset_assignments(),
             field_capture_case_items=field_emitter.emit_capture_case_items(),
-            default_tdest_literal=sv_int(4, plan.default_tdest),
+            default_tdest_literal=sv_int(plan.stream.tdest_width, plan.default_tdest),
         )
 
         content = self.render_module(plan, body)

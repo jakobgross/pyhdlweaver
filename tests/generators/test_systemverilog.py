@@ -6,7 +6,7 @@ from pyhdlweaver.actions import DropOnMismatch, DropOnRegisterMismatch, RouteByR
 from pyhdlweaver.generators import GeneratedFile, SystemVerilogGenerator
 from pyhdlweaver.protocols import SidebandProtocol
 from pyhdlweaver.protocols.definitions import Field
-from pyhdlweaver.stream.axi_stream import STREAM_32
+from pyhdlweaver.stream.axi_stream import STREAM_32, AxisStream
 
 
 def test_eth_ip_systemverilog_example_returns_generated_file():
@@ -130,6 +130,37 @@ def test_systemverilog_generator_no_config_valid_without_register_actions():
     generated = SystemVerilogGenerator().generate(protocol, STREAM_32)
 
     assert "config_valid" not in generated.content
+
+
+def test_systemverilog_generator_rejects_destination_exceeding_tdest_width():
+    kind_field = Field(
+        "kind",
+        offset=0,
+        width=8,
+        actions=[RouteByValue(table={1: 4})],
+    )
+    protocol = SidebandProtocol(name="overflow_route", fields=[kind_field], total_length=1)
+    stream = AxisStream(data_width=32, tdest_width=2)
+
+    with pytest.raises(ValueError, match="does not fit in tdest_width=2"):
+        SystemVerilogGenerator().generate(protocol, stream)
+
+
+def test_systemverilog_generator_uses_stream_tdest_width_for_literals():
+    kind_field = Field(
+        "kind",
+        offset=0,
+        width=8,
+        actions=[RouteByValue(table={1: 2}, default=0)],
+    )
+    protocol = SidebandProtocol(name="narrow_route", fields=[kind_field], total_length=1)
+    stream = AxisStream(data_width=32, tdest_width=2)
+
+    generated = SystemVerilogGenerator().generate(protocol, stream)
+
+    assert "parameter int TDEST_WIDTH = 2" in generated.content
+    assert "2'h2" in generated.content
+    assert "2'h0" in generated.content
 
 
 def test_systemverilog_generator_rejects_route_to_all_for_tdest():

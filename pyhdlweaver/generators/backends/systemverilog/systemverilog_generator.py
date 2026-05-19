@@ -98,6 +98,21 @@ class SystemVerilogGenerator(CodeGenerator):
                 else:
                     raise NotImplementedError(f"Unsupported action type: {type(action).__name__}")
 
+        all_dests = [rc.destination for rc in route_conditions] + [default_tdest]
+        max_dest = max(all_dests)
+        if max_dest >= (1 << stream.tdest_width):
+            raise ValueError(
+                f"Destination {max_dest} does not fit in tdest_width={stream.tdest_width} bits"
+            )
+        route_conditions = [
+            RouteCondition(
+                expression=rc.expression,
+                destination=rc.destination,
+                destination_literal=sv_int(stream.tdest_width, rc.destination),
+            )
+            for rc in route_conditions
+        ]
+
         return GenerationPlan(
             protocol=protocol,
             stream=stream,
