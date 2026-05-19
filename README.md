@@ -274,11 +274,7 @@ pyhdlweaver/
 
 #### bugs present
 
-- [ ] systemverilog_generator.py (line 160), sideband_systemverilog_generator.py (line 28): route literals are hard-coded as 4-bit values even though the module has TDEST_WIDTH. Works with the default, but the parameter is not really honored.
-
 - [ ] cocotb_eth_ip_parser.py (line 66): the 32-bit parser forwards from the next full beat, so IP_PAYLOAD_OFFSET=34 becomes offset 36. The tests encode that behavior. If we want exact byte forwarding for sideband parsers, the generated HDL needs byte realignment or a stated alignment restriction.
-
-- [ ] sideband_body.sv.j2 (line 16): frame_started is assigned but never read. Small cleanup item before initial commit.
 
 ### Milestone 5 - cocotb End-to-End Test
 - [x] cocotb testbench for generated ETH+IP parser
