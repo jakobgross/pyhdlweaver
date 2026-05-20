@@ -40,10 +40,13 @@ module eth_ip_forward_udp_8bit #(
 );
 
 localparam int PARSE_BEATS = 34;
+localparam int PAYLOAD_START_BYTE = 1;
 
 typedef enum logic [1:0] {
   // Capture fixed parse-region fields.
   ST_PARSE,
+  // Emit payload bytes that shared the final parse beat.
+  ST_TAIL,
   // Forward payload beats after a clean parse.
   ST_FORWARD,
   // Consume and suppress the rest of a dropped frame.
@@ -55,12 +58,19 @@ logic [5:0] beat_count;
 logic sticky_tuser;
 logic parser_drop;
 logic payload_fire;
+logic tail_fire;
 logic parse_fire;
 logic drop_fire;
 logic drop_next;
 logic [TDEST_WIDTH-1:0] route_tdest_next;
 logic [TDEST_WIDTH-1:0] route_tdest_reg;
-logic fields_fresh;
+logic [DATA_WIDTH-1:0] tail_tdata_reg;
+logic [KEEP_WIDTH-1:0] tail_tkeep_reg;
+logic tail_tlast_reg;
+logic tail_tuser_reg;
+logic [KEEP_WIDTH-1:0] parse_tail_keep_comb;
+int unsigned input_valid_bytes_comb;
+int unsigned parse_tail_bytes_comb;
 
 logic [15:0] eth_ethertype_reg;
 logic [7:0] ip_version_ihl_reg;
@@ -73,19 +83,23 @@ logic [31:0] ip_dst_comb;
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign payload_fire = (state == ST_FORWARD) && s_axis_tvalid && s_axis_tready;
+assign tail_fire = (state == ST_TAIL) && m_axis_tvalid && m_axis_tready;
 assign drop_fire = (state == ST_DROP) && s_axis_tvalid && s_axis_tready;
 
-// Accept parse and drop beats immediately. Backpressure only while forwarding.
-assign s_axis_tready = (state == ST_FORWARD) ? m_axis_tready : 1'b1;
+// Accept parse and drop beats immediately. Hold input while emitting stored tail bytes.
+assign s_axis_tready = (state == ST_TAIL) ? 1'b0 :
+                       (state == ST_FORWARD) ? m_axis_tready : 1'b1;
 
-// Forward payload data unchanged after the parser accepts the fixed header.
-assign m_axis_tdata = s_axis_tdata;
-assign m_axis_tkeep = s_axis_tkeep;
-assign m_axis_tlast = s_axis_tlast;
-assign m_axis_tvalid = (state == ST_FORWARD) && s_axis_tvalid;
+// Forward stored parse-tail data first, then pass later payload beats through.
+assign m_axis_tdata = (state == ST_TAIL) ? tail_tdata_reg : s_axis_tdata;
+assign m_axis_tkeep = (state == ST_TAIL) ? tail_tkeep_reg : s_axis_tkeep;
+assign m_axis_tlast = (state == ST_TAIL) ? tail_tlast_reg : s_axis_tlast;
+assign m_axis_tvalid = ((state == ST_TAIL) && (tail_tkeep_reg != '0)) ||
+                       ((state == ST_FORWARD) && s_axis_tvalid);
 
 // Preserve upstream errors and mark parser-detected drops on forwarded frames.
-assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;
+assign m_axis_tuser = sticky_tuser | parser_drop |
+                      ((state == ST_TAIL) ? tail_tuser_reg : s_axis_tuser);
 
 // Drive the selected route for every forwarded payload beat.
 assign m_axis_tdest = route_tdest_reg;
@@ -100,6 +114,38 @@ assign ip_src = ip_src_reg;
 assign ip_dst = ip_dst_reg;
 // Assert when all header fields are captured and valid.
 assign fields_valid = (state != ST_PARSE);
+
+// Count valid bytes in the current input beat.
+function automatic int unsigned keep_count(input logic [KEEP_WIDTH-1:0] keep);
+  int unsigned count;
+  begin
+    count = 0;
+    for (int i = 0; i < KEEP_WIDTH; i++) begin
+      if (keep[i])
+        count++;
+    end
+    return count;
+  end
+endfunction
+
+// Keep only payload bytes that share the final parse beat with the header.
+function automatic logic [KEEP_WIDTH-1:0] keep_from_payload_start(input logic [KEEP_WIDTH-1:0] keep);
+  logic [KEEP_WIDTH-1:0] payload_keep;
+  begin
+    payload_keep = '0;
+    for (int i = 0; i < KEEP_WIDTH; i++) begin
+      if (i >= PAYLOAD_START_BYTE)
+        payload_keep[i] = keep[i];
+    end
+    return payload_keep;
+  end
+endfunction
+
+always_comb begin
+  input_valid_bytes_comb = s_axis_tlast ? keep_count(s_axis_tkeep) : KEEP_WIDTH;
+  parse_tail_keep_comb = keep_from_payload_start(s_axis_tkeep);
+  parse_tail_bytes_comb = keep_count(parse_tail_keep_comb);
+end
 
 always_comb begin
   ip_dst_comb = ip_dst_reg;
@@ -124,6 +170,10 @@ always_ff @(posedge clk) begin
     sticky_tuser <= 1'b0;
     parser_drop <= 1'b0;
     route_tdest_reg <= '0;
+    tail_tdata_reg <= '0;
+    tail_tkeep_reg <= '0;
+    tail_tlast_reg <= 1'b0;
+    tail_tuser_reg <= 1'b0;
     fields_fresh <= 1'b0;
     eth_ethertype_reg <= 16'd0;
     ip_version_ihl_reg <= 8'd0;
@@ -197,29 +247,77 @@ always_ff @(posedge clk) begin
             end
           endcase
 
-          if (s_axis_tlast) begin
-            // Short frame ended before payload forwarding. Clear per-frame state.
+          if (beat_count == PARSE_BEATS - 1) begin
+            // Header is complete, so latch route and choose forward or drop.
+            route_tdest_reg <= route_tdest_next;
+            if (s_axis_tlast && input_valid_bytes_comb < PAYLOAD_START_BYTE) begin
+              // Final parse beat did not contain the full header.
+              state <= ST_PARSE;
+              sticky_tuser <= 1'b0;
+              parser_drop <= 1'b0;
+              route_tdest_reg <= '0;
+            end else if (drop_next) begin
+              // Drop before any payload beat has been forwarded.
+              fields_fresh <= 1'b1;
+              parser_drop <= 1'b1;
+              if ((ip_protocol_reg != 8'h11)) non_udp_drop_count <= non_udp_drop_count + 32'd1;
+              if (s_axis_tlast) begin
+                state <= ST_PARSE;
+                sticky_tuser <= 1'b0;
+                parser_drop <= 1'b0;
+                route_tdest_reg <= '0;
+              end else begin
+                state <= ST_DROP;
+              end
+            end else if (parse_tail_bytes_comb != 0) begin
+              // Forward payload bytes that were already present on this beat.
+              fields_fresh <= 1'b1;
+              tail_tdata_reg <= s_axis_tdata;
+              tail_tkeep_reg <= parse_tail_keep_comb;
+              tail_tlast_reg <= s_axis_tlast;
+              tail_tuser_reg <= s_axis_tuser;
+              state <= ST_TAIL;
+            end else if (s_axis_tlast) begin
+              // Header-only frame. Nothing needs to be forwarded.
+              fields_fresh <= 1'b1;
+              state <= ST_PARSE;
+              sticky_tuser <= 1'b0;
+              parser_drop <= 1'b0;
+              route_tdest_reg <= '0;
+            end else begin
+              // Header passed validation. Begin forwarding payload beats.
+              fields_fresh <= 1'b1;
+              state <= ST_FORWARD;
+            end
+            beat_count <= '0;
+          end else if (s_axis_tlast) begin
+            // Short frame ended before the fixed header was complete.
             state <= ST_PARSE;
             beat_count <= '0;
             sticky_tuser <= 1'b0;
             parser_drop <= 1'b0;
-          end else if (beat_count == PARSE_BEATS - 1) begin
-            // Header is complete, so latch route and choose forward or drop.
-            route_tdest_reg <= route_tdest_next;
-            fields_fresh <= 1'b1;
-            if (drop_next) begin
-              // Drop before any payload beat has been forwarded.
-              state <= ST_DROP;
-              parser_drop <= 1'b1;
-              if ((ip_protocol_reg != 8'h11)) non_udp_drop_count <= non_udp_drop_count + 32'd1;
-            end else begin
-              // Header passed validation. Begin forwarding payload beats.
-              state <= ST_FORWARD;
-            end
-            beat_count <= '0;
           end else begin
             // More fixed-header beats remain.
             beat_count <= beat_count + 1'b1;
+          end
+        end
+      end
+
+      ST_TAIL: begin
+        // Emit the saved tail from the final parse beat before accepting more input.
+        if (tail_fire) begin
+          tail_tdata_reg <= '0;
+          tail_tkeep_reg <= '0;
+          tail_tlast_reg <= 1'b0;
+          tail_tuser_reg <= 1'b0;
+          if (tail_tlast_reg) begin
+            state <= ST_PARSE;
+            beat_count <= '0;
+            sticky_tuser <= 1'b0;
+            parser_drop <= 1'b0;
+            route_tdest_reg <= '0;
+          end else begin
+            state <= ST_FORWARD;
           end
         end
       end

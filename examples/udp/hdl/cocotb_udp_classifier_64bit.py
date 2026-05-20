@@ -5,15 +5,15 @@ from cocotbext.axi import AxiStreamBus, AxiStreamFrame, AxiStreamSink, AxiStream
 
 CLOCK_PERIOD_NS = 10
 DATA_WIDTH_BYTES = 8
-PARSE_BYTES = 48  # 6 parse beats x 8 bytes/beat
+PAYLOAD_OFFSET = 42  # Ethernet, IP, and UDP headers
 
 DEFAULT_SPORT = 1234
 DEFAULT_IP_DST = "192.168.1.1"  # matches DEFAULT_ALLOWED_DST_IP (0xC0A80101)
 
-TDEST_WELL_KNOWN = 0   # dport 1-1023
-TDEST_REGISTERED = 1   # dport 1024-49151
-TDEST_EPHEMERAL  = 2   # dport 49152-65535
-TDEST_DEFAULT    = 3   # dport 0 (outside all ranges)
+TDEST_WELL_KNOWN = 0  # dport 1-1023
+TDEST_REGISTERED = 1  # dport 1024-49151
+TDEST_EPHEMERAL = 2  # dport 49152-65535
+TDEST_DEFAULT = 3  # dport 0 (outside all ranges)
 
 
 def _import_scapy_offline():
@@ -90,7 +90,7 @@ async def routes_well_known_port_to_tdest_0(dut):
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
     frame_bytes = make_frame(dport=80)
     frame = await send_and_recv(dut, frame_bytes)
-    assert bytes(frame.tdata) == frame_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == frame_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_WELL_KNOWN
     assert int(frame.tuser) == 0
 
@@ -100,7 +100,7 @@ async def routes_registered_port_to_tdest_1(dut):
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
     frame_bytes = make_frame(dport=8080)
     frame = await send_and_recv(dut, frame_bytes)
-    assert bytes(frame.tdata) == frame_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == frame_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_REGISTERED
     assert int(frame.tuser) == 0
 
@@ -110,7 +110,7 @@ async def routes_ephemeral_port_to_tdest_2(dut):
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
     frame_bytes = make_frame(dport=50000)
     frame = await send_and_recv(dut, frame_bytes)
-    assert bytes(frame.tdata) == frame_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == frame_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_EPHEMERAL
     assert int(frame.tuser) == 0
 
@@ -121,14 +121,14 @@ async def routes_port_zero_to_default_tdest_3(dut):
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
     frame_bytes = make_frame(dport=0)
     frame = await send_and_recv(dut, frame_bytes)
-    assert bytes(frame.tdata) == frame_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == frame_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_DEFAULT
     assert int(frame.tuser) == 0
 
 
 @cocotb.test()
 async def drops_non_ipv4_packet(dut):
-    # Patch ethertype to 0x0806 (ARP); all other fields remain valid.
+    # Patch ethertype to 0x0806 (ARP), all other fields remain valid.
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
     frame_bytes = bytearray(make_frame(dport=80))
     frame_bytes[12] = 0x08
@@ -220,7 +220,7 @@ async def ok_then_nok(dut):
     nok_bytes = make_frame(dport=80, sport=80)
 
     frame = await forward_one(source, sink, ok_bytes)
-    assert bytes(frame.tdata) == ok_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == ok_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_WELL_KNOWN
 
     await drop_one(source, sink, nok_bytes, dut)
@@ -242,7 +242,7 @@ async def nok_then_ok(dut):
     assert int(dut.ip_dst_register_mismatch_count.value) == 1
 
     frame = await forward_one(source, sink, ok_bytes)
-    assert bytes(frame.tdata) == ok_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == ok_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_REGISTERED
 
 
@@ -258,11 +258,11 @@ async def two_ok_frames(dut):
     frame_b = make_frame(dport=50000)
 
     frame = await forward_one(source, sink, frame_a)
-    assert bytes(frame.tdata) == frame_a[PARSE_BYTES:]
+    assert bytes(frame.tdata) == frame_a[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_WELL_KNOWN
 
     frame = await forward_one(source, sink, frame_b)
-    assert bytes(frame.tdata) == frame_b[PARSE_BYTES:]
+    assert bytes(frame.tdata) == frame_b[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_EPHEMERAL
 
 
@@ -281,13 +281,13 @@ async def ok_nok_ok(dut):
     nok_bytes = bytes(nok_raw)
 
     frame = await forward_one(source, sink, ok_bytes)
-    assert bytes(frame.tdata) == ok_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == ok_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_REGISTERED
 
     await drop_one(source, sink, nok_bytes, dut)
     assert int(dut.udp_checksum_register_match_count.value) == 1
 
     frame = await forward_one(source, sink, ok_bytes)
-    assert bytes(frame.tdata) == ok_bytes[PARSE_BYTES:]
+    assert bytes(frame.tdata) == ok_bytes[PAYLOAD_OFFSET:]
     assert int(frame.tdest) == TDEST_REGISTERED
     assert int(dut.udp_checksum_register_match_count.value) == 1

@@ -1,0 +1,469 @@
+// mold_udp_512bit generated with pyhdlweaver by Jakob Gross
+// https://github.com/jakobgross/pyhdlweaver
+
+module mold_udp_512bit #(
+  parameter int DATA_WIDTH = 512,
+  parameter int KEEP_WIDTH = DATA_WIDTH / 8,
+  parameter int TDEST_WIDTH = 4
+) (
+  input  logic clk,
+  input  logic rst,
+
+  input  logic [DATA_WIDTH-1:0] s_axis_tdata,
+  input  logic [KEEP_WIDTH-1:0] s_axis_tkeep,
+  input  logic s_axis_tlast,
+  input  logic s_axis_tuser,
+  input  logic s_axis_tvalid,
+  output logic s_axis_tready,
+
+  output logic [DATA_WIDTH-1:0] m_axis_tdata,
+  output logic [KEEP_WIDTH-1:0] m_axis_tkeep,
+  output logic m_axis_tlast,
+  output logic m_axis_tuser,
+  output logic [TDEST_WIDTH-1:0] m_axis_tdest,
+  output logic m_axis_tvalid,
+  input  logic m_axis_tready,
+
+  output logic [31:0] malformed_count,
+  // parsed fields
+  output logic [79:0] session_id,
+  output logic [63:0] seq_num,
+  output logic [15:0] msg_count,
+  output logic [15:0] mold_message_msg_len,
+  output logic mold_message_fields_valid,
+  output logic mold_message_fields_fresh,
+  output logic fields_valid,
+  output logic fields_fresh
+);
+
+localparam int PARSE_BEATS = 1;
+localparam int OUTER_TOTAL_BYTES = 20;
+localparam int OUTER_TAIL_START = 20;
+localparam int SUB_HEADER_BYTES = 2;
+
+typedef enum logic [1:0] {
+  // Capture the fixed outer header fields.
+  ST_PARSE,
+  // Capture the per-message header fields.
+  ST_MSG_HDR,
+  // Emit one sub-message payload frame.
+  ST_MSG_BODY,
+  // Consume the rest of a malformed input frame.
+  ST_DRAIN
+} state_t;
+
+state_t state;
+logic [0:0] beat_count;
+logic [1:0] sub_header_offset_reg;
+logic [15:0] msg_remaining_reg;
+logic [15:0] msg_bytes_remaining_reg;
+logic [DATA_WIDTH-1:0] scratch_data_reg;
+logic [6:0] scratch_count_reg;
+logic scratch_last_reg;
+logic sticky_tuser_reg;
+logic [7:0] scratch_byte_comb;
+logic [15:0] body_out_bytes_comb;
+logic body_truncated_comb;
+logic mold_message_fields_fresh_reg;
+
+logic [79:0] session_id_reg;
+logic [63:0] seq_num_reg;
+logic [15:0] msg_count_reg;
+logic [79:0] session_id_comb;
+logic [63:0] seq_num_comb;
+logic [15:0] msg_count_comb;
+logic [15:0] mold_message_msg_len_reg;
+logic [15:0] mold_message_msg_len_comb;
+
+logic parse_fire;
+logic scratch_load_fire;
+logic body_fire;
+logic drain_fire;
+int unsigned input_valid_bytes_comb;
+int unsigned outer_tail_count_comb;
+
+assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
+assign scratch_load_fire = (state == ST_MSG_HDR || state == ST_MSG_BODY) &&
+                           (scratch_count_reg == '0) &&
+                           s_axis_tvalid && s_axis_tready;
+assign body_fire = (state == ST_MSG_BODY) && m_axis_tvalid && m_axis_tready;
+assign drain_fire = (state == ST_DRAIN) && s_axis_tvalid && s_axis_tready;
+assign s_axis_tready = (state == ST_PARSE || state == ST_DRAIN) ? 1'b1 :
+                       (scratch_count_reg == '0);
+
+// The scratchpad is consumed from byte lane 0 upward.
+assign scratch_byte_comb = scratch_data_reg[7:0];
+
+// Count valid bytes in the final input beat.
+function automatic int unsigned keep_count(input logic [KEEP_WIDTH-1:0] keep);
+  int unsigned count;
+  begin
+    count = 0;
+    for (int i = 0; i < KEEP_WIDTH; i++) begin
+      if (keep[i])
+        count++;
+    end
+    return count;
+  end
+endfunction
+
+// Build an output keep mask for the leading payload bytes.
+function automatic logic [KEEP_WIDTH-1:0] keep_for_count(input int unsigned count);
+  logic [KEEP_WIDTH-1:0] keep;
+  begin
+    keep = '0;
+    for (int i = 0; i < KEEP_WIDTH; i++) begin
+      if (i < count)
+        keep[i] = 1'b1;
+    end
+    return keep;
+  end
+endfunction
+
+// Determine how many bytes are usable on the current input beat.
+always_comb begin
+  input_valid_bytes_comb = s_axis_tlast ? keep_count(s_axis_tkeep) : KEEP_WIDTH;
+  outer_tail_count_comb = (input_valid_bytes_comb > OUTER_TAIL_START) ?
+                          (input_valid_bytes_comb - OUTER_TAIL_START) : 0;
+end
+
+// Emit at most one scratchpad worth of payload per output beat.
+always_comb begin
+  body_out_bytes_comb = '0;
+  if (state == ST_MSG_BODY && scratch_count_reg != '0) begin
+    if (16'(msg_bytes_remaining_reg) <= 16'(scratch_count_reg))
+      body_out_bytes_comb = 16'(msg_bytes_remaining_reg);
+    else
+      body_out_bytes_comb = 16'(scratch_count_reg);
+  end
+end
+
+assign body_truncated_comb = (state == ST_MSG_BODY) &&
+                             (scratch_count_reg != '0) &&
+                             scratch_last_reg &&
+                             (16'(msg_bytes_remaining_reg) > 16'(scratch_count_reg));
+
+// Forward sub-message payload bytes from the scratchpad.
+assign m_axis_tdata  = scratch_data_reg;
+assign m_axis_tkeep  = keep_for_count(body_out_bytes_comb);
+assign m_axis_tlast  = (state == ST_MSG_BODY) &&
+                       (scratch_count_reg != '0) &&
+                       ((16'(msg_bytes_remaining_reg) <= 16'(scratch_count_reg)) ||
+                        body_truncated_comb);
+assign m_axis_tuser  = sticky_tuser_reg | body_truncated_comb;
+assign m_axis_tdest  = '0;
+assign m_axis_tvalid = (state == ST_MSG_BODY) &&
+                       (scratch_count_reg != '0) &&
+                       (msg_bytes_remaining_reg != '0);
+
+// Expose outer and sub-message fields as output ports.
+assign session_id = session_id_reg;
+assign seq_num = seq_num_reg;
+assign msg_count = msg_count_reg;
+assign mold_message_msg_len = mold_message_msg_len_reg;
+assign fields_valid = (state != ST_PARSE);
+assign mold_message_fields_valid = (state == ST_MSG_BODY);
+assign mold_message_fields_fresh = mold_message_fields_fresh_reg;
+
+always_comb begin
+  session_id_comb = session_id_reg;
+  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+    session_id_comb[79:72] = s_axis_tdata[7:0];
+    session_id_comb[71:64] = s_axis_tdata[15:8];
+    session_id_comb[63:56] = s_axis_tdata[23:16];
+    session_id_comb[55:48] = s_axis_tdata[31:24];
+    session_id_comb[47:40] = s_axis_tdata[39:32];
+    session_id_comb[39:32] = s_axis_tdata[47:40];
+    session_id_comb[31:24] = s_axis_tdata[55:48];
+    session_id_comb[23:16] = s_axis_tdata[63:56];
+    session_id_comb[15:8] = s_axis_tdata[71:64];
+    session_id_comb[7:0] = s_axis_tdata[79:72];
+  end
+end
+
+always_comb begin
+  seq_num_comb = seq_num_reg;
+  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+    seq_num_comb[63:56] = s_axis_tdata[87:80];
+    seq_num_comb[55:48] = s_axis_tdata[95:88];
+    seq_num_comb[47:40] = s_axis_tdata[103:96];
+    seq_num_comb[39:32] = s_axis_tdata[111:104];
+    seq_num_comb[31:24] = s_axis_tdata[119:112];
+    seq_num_comb[23:16] = s_axis_tdata[127:120];
+    seq_num_comb[15:8] = s_axis_tdata[135:128];
+    seq_num_comb[7:0] = s_axis_tdata[143:136];
+  end
+end
+
+always_comb begin
+  msg_count_comb = msg_count_reg;
+  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+    msg_count_comb[15:8] = s_axis_tdata[151:144];
+    msg_count_comb[7:0] = s_axis_tdata[159:152];
+  end
+end
+
+always_comb begin
+  mold_message_msg_len_comb = mold_message_msg_len_reg;
+  case (sub_header_offset_reg)
+    0: mold_message_msg_len_comb[15:8] = scratch_byte_comb[7:0];
+    1: mold_message_msg_len_comb[7:0] = scratch_byte_comb[7:0];
+    default: ;
+  endcase
+end
+
+
+always_ff @(posedge clk) begin
+  if (rst) begin
+    state <= ST_PARSE;
+    beat_count <= '0;
+    sub_header_offset_reg <= '0;
+    msg_remaining_reg <= '0;
+    msg_bytes_remaining_reg <= '0;
+    scratch_data_reg <= '0;
+    scratch_count_reg <= '0;
+    scratch_last_reg <= 1'b0;
+    sticky_tuser_reg <= 1'b0;
+    malformed_count <= 32'd0;
+    fields_fresh <= 1'b0;
+    mold_message_fields_fresh_reg <= 1'b0;
+    session_id_reg <= 80'd0;
+    seq_num_reg <= 64'd0;
+    msg_count_reg <= 16'd0;
+    mold_message_msg_len_reg <= 16'd0;
+  end else begin
+    fields_fresh <= 1'b0;
+    mold_message_fields_fresh_reg <= 1'b0;
+
+    case (state)
+      ST_PARSE: begin
+        // Count outer-header beats and capture configured fields.
+        if (parse_fire) begin
+          if (beat_count == '0)
+            sticky_tuser_reg <= s_axis_tuser;
+          else if (s_axis_tuser)
+            sticky_tuser_reg <= 1'b1;
+
+          case (beat_count)
+            0: begin
+              session_id_reg[79:72] <= s_axis_tdata[7:0];
+              session_id_reg[71:64] <= s_axis_tdata[15:8];
+              session_id_reg[63:56] <= s_axis_tdata[23:16];
+              session_id_reg[55:48] <= s_axis_tdata[31:24];
+              session_id_reg[47:40] <= s_axis_tdata[39:32];
+              session_id_reg[39:32] <= s_axis_tdata[47:40];
+              session_id_reg[31:24] <= s_axis_tdata[55:48];
+              session_id_reg[23:16] <= s_axis_tdata[63:56];
+              session_id_reg[15:8] <= s_axis_tdata[71:64];
+              session_id_reg[7:0] <= s_axis_tdata[79:72];
+              seq_num_reg[63:56] <= s_axis_tdata[87:80];
+              seq_num_reg[55:48] <= s_axis_tdata[95:88];
+              seq_num_reg[47:40] <= s_axis_tdata[103:96];
+              seq_num_reg[39:32] <= s_axis_tdata[111:104];
+              seq_num_reg[31:24] <= s_axis_tdata[119:112];
+              seq_num_reg[23:16] <= s_axis_tdata[127:120];
+              seq_num_reg[15:8] <= s_axis_tdata[135:128];
+              seq_num_reg[7:0] <= s_axis_tdata[143:136];
+              msg_count_reg[15:8] <= s_axis_tdata[151:144];
+              msg_count_reg[7:0] <= s_axis_tdata[159:152];
+            end
+            default: ;
+          endcase
+
+          if (beat_count == PARSE_BEATS - 1) begin
+            beat_count <= '0;
+            if (input_valid_bytes_comb < OUTER_TAIL_START) begin
+              // Final header beat did not contain the whole outer header.
+              malformed_count <= malformed_count + 1'b1;
+              sticky_tuser_reg <= 1'b1;
+              scratch_data_reg <= '0;
+              scratch_count_reg <= '0;
+              scratch_last_reg <= 1'b0;
+              state <= ST_PARSE;
+            end else begin
+              msg_remaining_reg <= msg_count_comb;
+              fields_fresh <= 1'b1;
+              sub_header_offset_reg <= '0;
+              scratch_data_reg <= '0;
+              for (int i = 0; i < KEEP_WIDTH; i++) begin
+                if (i < outer_tail_count_comb)
+                  scratch_data_reg[i*8 +: 8] <= s_axis_tdata[(OUTER_TAIL_START + i)*8 +: 8];
+              end
+              scratch_count_reg <= 7'(outer_tail_count_comb);
+              scratch_last_reg <= s_axis_tlast;
+
+              if (msg_count_comb == '0) begin
+                // No sub-messages are expected.
+                state <= s_axis_tlast ? ST_PARSE : ST_DRAIN;
+              end else begin
+                // Outer header is complete. Start the first sub-message.
+                state <= ST_MSG_HDR;
+              end
+            end
+          end else if (s_axis_tlast) begin
+            // Short frame ended before the outer header was complete.
+            malformed_count <= malformed_count + 1'b1;
+            sticky_tuser_reg <= 1'b1;
+            beat_count <= '0;
+            state <= ST_PARSE;
+          end else begin
+            beat_count <= beat_count + 1'b1;
+          end
+        end
+      end
+
+      ST_MSG_HDR: begin
+        if (scratch_count_reg == '0) begin
+          // Load another input beat into the scratchpad.
+          if (scratch_load_fire) begin
+            if (s_axis_tuser)
+              sticky_tuser_reg <= 1'b1;
+            scratch_data_reg <= s_axis_tdata;
+            scratch_count_reg <= 7'(input_valid_bytes_comb);
+            scratch_last_reg <= s_axis_tlast;
+            if (s_axis_tlast && input_valid_bytes_comb == 0) begin
+              malformed_count <= malformed_count + 1'b1;
+              sticky_tuser_reg <= 1'b1;
+              state <= ST_PARSE;
+            end
+          end
+        end else begin
+          // Consume one sub-header byte from the scratchpad.
+          case (sub_header_offset_reg)
+              0: begin
+                mold_message_msg_len_reg[15:8] <= scratch_byte_comb[7:0];
+              end
+              1: begin
+                mold_message_msg_len_reg[7:0] <= scratch_byte_comb[7:0];
+              end
+            default: ;
+          endcase
+
+          scratch_data_reg <= scratch_data_reg >> 8;
+          scratch_count_reg <= scratch_count_reg - 1'b1;
+
+          if (sub_header_offset_reg == SUB_HEADER_BYTES - 1) begin
+            // Sub-message header is complete.
+            sub_header_offset_reg <= '0;
+            mold_message_fields_fresh_reg <= 1'b1;
+            if (mold_message_msg_len_comb == '0) begin
+              // Zero-length sub-messages are malformed.
+              malformed_count <= malformed_count + 1'b1;
+              sticky_tuser_reg <= 1'b1;
+              scratch_count_reg <= '0;
+              state <= scratch_last_reg ? ST_PARSE : ST_DRAIN;
+            end else begin
+              // Header passed validation. Begin emitting payload bytes.
+              msg_bytes_remaining_reg <= mold_message_msg_len_comb;
+              state <= ST_MSG_BODY;
+            end
+          end else begin
+            sub_header_offset_reg <= sub_header_offset_reg + 1'b1;
+            if (scratch_count_reg == 1 && scratch_last_reg) begin
+              // Frame ended in the middle of a sub-message header.
+              malformed_count <= malformed_count + 1'b1;
+              sticky_tuser_reg <= 1'b1;
+              sub_header_offset_reg <= '0;
+              scratch_count_reg <= '0;
+              state <= ST_PARSE;
+            end
+          end
+        end
+      end
+
+      ST_MSG_BODY: begin
+        if (scratch_count_reg == '0) begin
+          // Load payload bytes when the scratchpad is empty.
+          if (scratch_load_fire) begin
+            if (s_axis_tuser)
+              sticky_tuser_reg <= 1'b1;
+            scratch_data_reg <= s_axis_tdata;
+            scratch_count_reg <= 7'(input_valid_bytes_comb);
+            scratch_last_reg <= s_axis_tlast;
+            if (s_axis_tlast && input_valid_bytes_comb == 0) begin
+              malformed_count <= malformed_count + 1'b1;
+              sticky_tuser_reg <= 1'b1;
+              msg_bytes_remaining_reg <= '0;
+              msg_remaining_reg <= '0;
+              state <= ST_PARSE;
+            end
+          end
+        end else if (body_fire) begin
+          // Output payload bytes and advance the scratchpad cursor.
+          scratch_data_reg <= scratch_data_reg >> (body_out_bytes_comb * 8);
+          scratch_count_reg <= scratch_count_reg - 7'(body_out_bytes_comb);
+
+          if (body_truncated_comb) begin
+            // Frame ended before the declared payload length was satisfied.
+            malformed_count <= malformed_count + 1'b1;
+            sticky_tuser_reg <= 1'b1;
+            msg_bytes_remaining_reg <= '0;
+            msg_remaining_reg <= '0;
+            scratch_count_reg <= '0;
+            state <= ST_PARSE;
+          end else if (16'(msg_bytes_remaining_reg) <= body_out_bytes_comb) begin
+            // This beat completed the current sub-message payload.
+            msg_bytes_remaining_reg <= '0;
+            if (msg_remaining_reg <= 1) begin
+              msg_remaining_reg <= '0;
+              if (scratch_count_reg > 7'(body_out_bytes_comb)) begin
+                // Extra bytes followed the declared final sub-message.
+                malformed_count <= malformed_count + 1'b1;
+                sticky_tuser_reg <= 1'b1;
+                scratch_count_reg <= '0;
+                state <= scratch_last_reg ? ST_PARSE : ST_DRAIN;
+              end else if (scratch_last_reg) begin
+                state <= ST_PARSE;
+              end else begin
+                // Declared messages ended before the input frame ended.
+                malformed_count <= malformed_count + 1'b1;
+                sticky_tuser_reg <= 1'b1;
+                state <= ST_DRAIN;
+              end
+            end else begin
+              if (scratch_count_reg == 7'(body_out_bytes_comb) && scratch_last_reg) begin
+                // Frame ended before all declared sub-messages arrived.
+                malformed_count <= malformed_count + 1'b1;
+                sticky_tuser_reg <= 1'b1;
+                msg_remaining_reg <= '0;
+                scratch_count_reg <= '0;
+                state <= ST_PARSE;
+              end else begin
+                // More sub-messages remain in this input frame.
+                msg_remaining_reg <= msg_remaining_reg - 1'b1;
+                state <= ST_MSG_HDR;
+              end
+            end
+          end else begin
+            msg_bytes_remaining_reg <= msg_bytes_remaining_reg - 16'(body_out_bytes_comb);
+          end
+        end
+      end
+
+      ST_DRAIN: begin
+        // Suppress bytes until the malformed input frame ends.
+        if (drain_fire) begin
+          if (s_axis_tuser)
+            sticky_tuser_reg <= 1'b1;
+          if (s_axis_tlast) begin
+            scratch_data_reg <= '0;
+            scratch_count_reg <= '0;
+            scratch_last_reg <= 1'b0;
+            sub_header_offset_reg <= '0;
+            msg_remaining_reg <= '0;
+            msg_bytes_remaining_reg <= '0;
+            state <= ST_PARSE;
+          end
+        end
+      end
+
+      default: begin
+        // Recover to the outer-header parser.
+        state <= ST_PARSE;
+      end
+    endcase
+  end
+end
+
+
+endmodule

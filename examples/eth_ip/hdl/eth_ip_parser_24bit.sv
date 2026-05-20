@@ -1,8 +1,8 @@
-// udp_classifier_64bit generated with pyhdlweaver by Jakob Gross
+// eth_ip_parser_24bit generated with pyhdlweaver by Jakob Gross
 // https://github.com/jakobgross/pyhdlweaver
 
-module udp_classifier_64bit #(
-  parameter int DATA_WIDTH = 64,
+module eth_ip_parser_24bit #(
+  parameter int DATA_WIDTH = 24,
   parameter int KEEP_WIDTH = DATA_WIDTH / 8,
   parameter int TDEST_WIDTH = 4
 ) (
@@ -24,33 +24,20 @@ module udp_classifier_64bit #(
   output logic m_axis_tvalid,
   input  logic m_axis_tready,
 
-  // configuration registers
-  input  logic config_valid,
-  input  logic [31:0] cfg_allowed_dst_ip,
-  input  logic [15:0] cfg_min_sport,
-  input  logic [15:0] cfg_max_sport,
-  input  logic [15:0] cfg_blocked_checksum,
-
-  // counters
-  output logic [31:0] non_ipv4_drop_count,
-  output logic [31:0] non_udp_drop_count,
-  output logic [31:0] ip_dst_register_mismatch_count,
-  output logic [31:0] udp_sport_register_range_count,
-  output logic [31:0] udp_checksum_register_match_count,
-
   // parsed fields
-  output logic [15:0] ethertype,
+  output logic [15:0] eth_ethertype,
+  output logic [7:0] ip_version_ihl,
+  output logic [15:0] ip_total_length,
+  output logic [15:0] ip_flags_frag,
   output logic [7:0] ip_protocol,
+  output logic [31:0] ip_src,
   output logic [31:0] ip_dst,
-  output logic [15:0] udp_sport,
-  output logic [15:0] udp_dport,
-  output logic [15:0] udp_checksum,
   output logic fields_valid,
   output logic fields_fresh
 );
 
-localparam int PARSE_BEATS = 6;
-localparam int PAYLOAD_START_BYTE = 2;
+localparam int PARSE_BEATS = 12;
+localparam int PAYLOAD_START_BYTE = 1;
 
 typedef enum logic [1:0] {
   // Capture fixed parse-region fields.
@@ -64,7 +51,7 @@ typedef enum logic [1:0] {
 } state_t;
 
 state_t state;
-logic [2:0] beat_count;
+logic [3:0] beat_count;
 logic sticky_tuser;
 logic parser_drop;
 logic payload_fire;
@@ -82,17 +69,14 @@ logic [KEEP_WIDTH-1:0] parse_tail_keep_comb;
 int unsigned input_valid_bytes_comb;
 int unsigned parse_tail_bytes_comb;
 
-logic [15:0] ethertype_reg;
+logic [15:0] eth_ethertype_reg;
+logic [7:0] ip_version_ihl_reg;
+logic [15:0] ip_total_length_reg;
+logic [15:0] ip_flags_frag_reg;
 logic [7:0] ip_protocol_reg;
+logic [31:0] ip_src_reg;
 logic [31:0] ip_dst_reg;
-logic [15:0] udp_sport_reg;
-logic [15:0] udp_dport_reg;
-logic [15:0] udp_checksum_reg;
-logic [15:0] udp_checksum_comb;
-logic [31:0] cfg_allowed_dst_ip_reg;
-logic [15:0] cfg_min_sport_reg;
-logic [15:0] cfg_max_sport_reg;
-logic [15:0] cfg_blocked_checksum_reg;
+logic [31:0] ip_dst_comb;
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign payload_fire = (state == ST_FORWARD) && s_axis_tvalid && s_axis_tready;
@@ -118,12 +102,13 @@ assign m_axis_tuser = sticky_tuser | parser_drop |
 assign m_axis_tdest = route_tdest_reg;
 
 // Expose all parsed field values as output ports.
-assign ethertype = ethertype_reg;
+assign eth_ethertype = eth_ethertype_reg;
+assign ip_version_ihl = ip_version_ihl_reg;
+assign ip_total_length = ip_total_length_reg;
+assign ip_flags_frag = ip_flags_frag_reg;
 assign ip_protocol = ip_protocol_reg;
+assign ip_src = ip_src_reg;
 assign ip_dst = ip_dst_reg;
-assign udp_sport = udp_sport_reg;
-assign udp_dport = udp_dport_reg;
-assign udp_checksum = udp_checksum_reg;
 // Assert when all header fields are captured and valid.
 assign fields_valid = (state != ST_PARSE);
 
@@ -160,30 +145,17 @@ always_comb begin
 end
 
 always_comb begin
-  udp_checksum_comb = udp_checksum_reg;
+  ip_dst_comb = ip_dst_reg;
   if (parse_fire && beat_count == PARSE_BEATS - 1) begin
-    udp_checksum_comb[15:8] = s_axis_tdata[7:0];
-    udp_checksum_comb[7:0] = s_axis_tdata[15:8];
+    ip_dst_comb[7:0] = s_axis_tdata[7:0];
   end
 end
 
-always_comb begin
-  // Combine all configured drop checks into one parse decision.
-  drop_next = 1'b0;
-  drop_next = drop_next | (ethertype_reg != 16'h800);
-  drop_next = drop_next | (ip_protocol_reg != 8'h11);
-  drop_next = drop_next | !(ip_dst_reg == cfg_allowed_dst_ip_reg);
-  drop_next = drop_next | ((udp_sport_reg < cfg_min_sport_reg) || (udp_sport_reg > cfg_max_sport_reg));
-  drop_next = drop_next | (udp_checksum_comb == cfg_blocked_checksum_reg);
-end
+// No drop actions are configured for this parser.
+assign drop_next = 1'b0;
 
-always_comb begin
-  // Start with the default route and let matching route actions override it.
-  route_tdest_next = 4'h3;
-  if ((udp_dport_reg >= 16'h1) && (udp_dport_reg <= 16'h3ff)) route_tdest_next = 4'h0;
-  if ((udp_dport_reg >= 16'h400) && (udp_dport_reg <= 16'hbfff)) route_tdest_next = 4'h1;
-  if ((udp_dport_reg >= 16'hc000) && (udp_dport_reg <= 16'hffff)) route_tdest_next = 4'h2;
-end
+// No route actions are configured, so use the default destination.
+assign route_tdest_next = 4'h0;
 
 always_ff @(posedge clk) begin
   if (rst) begin
@@ -197,28 +169,14 @@ always_ff @(posedge clk) begin
     tail_tlast_reg <= 1'b0;
     tail_tuser_reg <= 1'b0;
     fields_fresh <= 1'b0;
-    ethertype_reg <= 16'd0;
+    eth_ethertype_reg <= 16'd0;
+    ip_version_ihl_reg <= 8'd0;
+    ip_total_length_reg <= 16'd0;
+    ip_flags_frag_reg <= 16'd0;
     ip_protocol_reg <= 8'd0;
+    ip_src_reg <= 32'd0;
     ip_dst_reg <= 32'd0;
-    udp_sport_reg <= 16'd0;
-    udp_dport_reg <= 16'd0;
-    udp_checksum_reg <= 16'd0;
-    cfg_allowed_dst_ip_reg <= 32'hc0a80101;
-    cfg_min_sport_reg <= 16'h400;
-    cfg_max_sport_reg <= 16'hffff;
-    cfg_blocked_checksum_reg <= 16'h0;
-    non_ipv4_drop_count <= 32'd0;
-    non_udp_drop_count <= 32'd0;
-    ip_dst_register_mismatch_count <= 32'd0;
-    udp_sport_register_range_count <= 32'd0;
-    udp_checksum_register_match_count <= 32'd0;
   end else begin
-    if (config_valid) begin
-      cfg_allowed_dst_ip_reg <= cfg_allowed_dst_ip;
-      cfg_min_sport_reg <= cfg_min_sport;
-      cfg_max_sport_reg <= cfg_max_sport;
-      cfg_blocked_checksum_reg <= cfg_blocked_checksum;
-    end
     if (parse_fire || payload_fire || drop_fire) begin
       sticky_tuser <= sticky_tuser | s_axis_tuser;
     end
@@ -229,28 +187,37 @@ always_ff @(posedge clk) begin
         // Count fixed-header beats and capture configured fields.
         if (parse_fire) begin
           case (beat_count)
-            1: begin
-              ethertype_reg[15:8] <= s_axis_tdata[39:32];
-              ethertype_reg[7:0] <= s_axis_tdata[47:40];
-            end
-            2: begin
-              ip_protocol_reg[7:0] <= s_axis_tdata[63:56];
-            end
-            3: begin
-              ip_dst_reg[31:24] <= s_axis_tdata[55:48];
-              ip_dst_reg[23:16] <= s_axis_tdata[63:56];
-            end
             4: begin
-              ip_dst_reg[15:8] <= s_axis_tdata[7:0];
-              ip_dst_reg[7:0] <= s_axis_tdata[15:8];
-              udp_sport_reg[15:8] <= s_axis_tdata[23:16];
-              udp_sport_reg[7:0] <= s_axis_tdata[31:24];
-              udp_dport_reg[15:8] <= s_axis_tdata[39:32];
-              udp_dport_reg[7:0] <= s_axis_tdata[47:40];
+              eth_ethertype_reg[15:8] <= s_axis_tdata[7:0];
+              eth_ethertype_reg[7:0] <= s_axis_tdata[15:8];
+              ip_version_ihl_reg[7:0] <= s_axis_tdata[23:16];
             end
             5: begin
-              udp_checksum_reg[15:8] <= s_axis_tdata[7:0];
-              udp_checksum_reg[7:0] <= s_axis_tdata[15:8];
+              ip_total_length_reg[15:8] <= s_axis_tdata[15:8];
+              ip_total_length_reg[7:0] <= s_axis_tdata[23:16];
+            end
+            6: begin
+              ip_flags_frag_reg[15:8] <= s_axis_tdata[23:16];
+            end
+            7: begin
+              ip_flags_frag_reg[7:0] <= s_axis_tdata[7:0];
+              ip_protocol_reg[7:0] <= s_axis_tdata[23:16];
+            end
+            8: begin
+              ip_src_reg[31:24] <= s_axis_tdata[23:16];
+            end
+            9: begin
+              ip_src_reg[23:16] <= s_axis_tdata[7:0];
+              ip_src_reg[15:8] <= s_axis_tdata[15:8];
+              ip_src_reg[7:0] <= s_axis_tdata[23:16];
+            end
+            10: begin
+              ip_dst_reg[31:24] <= s_axis_tdata[7:0];
+              ip_dst_reg[23:16] <= s_axis_tdata[15:8];
+              ip_dst_reg[15:8] <= s_axis_tdata[23:16];
+            end
+            11: begin
+              ip_dst_reg[7:0] <= s_axis_tdata[7:0];
             end
             default: begin
               // No configured fields are captured on this beat.
@@ -270,11 +237,6 @@ always_ff @(posedge clk) begin
               // Drop before any payload beat has been forwarded.
               fields_fresh <= 1'b1;
               parser_drop <= 1'b1;
-              if ((ethertype_reg != 16'h800)) non_ipv4_drop_count <= non_ipv4_drop_count + 32'd1;
-              if ((ip_protocol_reg != 8'h11)) non_udp_drop_count <= non_udp_drop_count + 32'd1;
-              if (!(ip_dst_reg == cfg_allowed_dst_ip_reg)) ip_dst_register_mismatch_count <= ip_dst_register_mismatch_count + 32'd1;
-              if (((udp_sport_reg < cfg_min_sport_reg) || (udp_sport_reg > cfg_max_sport_reg))) udp_sport_register_range_count <= udp_sport_register_range_count + 32'd1;
-              if ((udp_checksum_comb == cfg_blocked_checksum_reg)) udp_checksum_register_match_count <= udp_checksum_register_match_count + 32'd1;
               if (s_axis_tlast) begin
                 state <= ST_PARSE;
                 sticky_tuser <= 1'b0;

@@ -39,9 +39,18 @@ module {{ plan.module_name }} #(
 {% endfor %}
 
 {% endif %}
+{% for port in extra_counter_ports|default([]) %}
+  output logic [{{ port.width - 1 }}:0] {{ port.name }},
+{% endfor %}
   // parsed fields
 {% for field in plan.protocol.fields %}
   output logic [{{ field.width - 1 }}:0] {{ field.name }},
+{% endfor %}
+{% for port in extra_parsed_ports|default([]) %}
+  output logic [{{ port.width - 1 }}:0] {{ port.name }},
+{% endfor %}
+{% for port in extra_status_ports|default([]) %}
+  output logic {{ port.name }},
 {% endfor %}
   output logic fields_valid,
   output logic fields_fresh

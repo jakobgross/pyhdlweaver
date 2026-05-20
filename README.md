@@ -284,8 +284,15 @@ pyhdlweaver/
 - [x] The cocotb testfiles should always recreate the sv files
 - [x] Cocotb needs multi frame tests. We need the combinations of (OK,NOK), (NOK,OK),(OK,OK),(OK,NOK,OK)
 
+### Milestone 6 - Full HFT Stack
+- [x] UDP protocol definition
+- [x] MoldUDP protocol definition
+- [ ] ITCH 5.0 protocol definition (DiscriminatedProtocol)
+- [ ] Full stack: Eth+IP+UDP+MoldUDP+ITCH generator
+- [ ] Broadcast splitter to DMA
+- [ ] cocotb integration tests with realistic packet captures
 
-### Milestone 6 - AXI-Lite Register Map
+### Milestone 7 - AXI-Lite Register Map
 - [ ] Register map generation from protocol + actions
 - [ ] Filter match/destination registers
 - [ ] Drop counter registers
@@ -293,14 +300,6 @@ pyhdlweaver/
 - [ ] Jinja2 template for register map in SystemVerilog
 - [ ] C header file generation for PS-side driver
 
-### Milestone 7 - Full HFT Stack
-- [ ] UDP protocol definition
-- [ ] MoldUDP protocol definition
-- [ ] ITCH 5.0 protocol definition (DiscriminatedProtocol)
-- [ ] Full stack: Eth+IP+UDP+MoldUDP+ITCH generator
-- [ ] Broadcast splitter to DMA
-- [ ] cocotb integration tests with realistic packet captures
-- [ ] Vivado timing closure on Zybo Z7-20
 
 ### Milestone 8 - Protocol Sources
 - [ ] `ProtocolSource` abstract base class
@@ -309,36 +308,42 @@ pyhdlweaver/
 - [ ] `DictSource` - JSON / YAML loader
 - [ ] Round-trip test: load from XML, compare to Python definition
 
-### Milestone 9 - SVA and Formal Checks
+### Milestone 9 - Vivado
+- [ ] Create Vivado project
+- [ ] integrate jg_rmii_eth as upstream source
+- [ ] Add full hft stack parsers
+- [ ] Vivado timing closure on Zybo Z7-20
+
+### Milestone 10 - SVA and Formal Checks
 - [ ] SVA assertions for generated SystemVerilog modules
 - [ ] Protocol invariant assertions
 - [ ] AXI-Stream handshake assertions
 - [ ] Drop and forward path assertions
 - [ ] Formal-friendly test harness templates
 
-### Milestone 10 - VHDL Generator
+### Milestone 11 - VHDL Generator
 - [ ] `VHDLGenerator`
 - [ ] Jinja2 template: VHDL module
 - [ ] GHDL simulation compatibility test
 - [ ] Integration test alongside jg_rmii_eth
 
-### Milestone 11 - SBE Support
+### Milestone 12 - SBE Support
 - [ ] `XmlSource` for SBE XML schema
 - [ ] SBE type system (uint8/16/32/64, char arrays, composite types)
 - [ ] SBE message as `DiscriminatedProtocol`
 - [ ] Example: generate parser from real exchange SBE schema
 
-### Milestone 12 - C++ Software Parser Generator
+### Milestone 13 - C++ Software Parser Generator
 - [ ] `CppGenerator`
 - [ ] Jinja2 template: C++ header and source files
 - [ ] Runtime library for parsing from raw byte buffers
 - [ ] End-to-end test: generated C++ parser produces same output as HDL parser for
 
-### Milestone 13 - Prioritize action types and multiple actions per field
+### Milestone 14 - Prioritize action types and multiple actions per field
 - [ ] Define action priority (validation before routing, capture at any point, etc.)
 - [ ] Update code generation logic to handle multiple actions per field according to priority rules
 
-### Milestone 14 - GUI for Protocol Definition
+### Milestone 15 - GUI for Protocol Definition
 - [ ] Simple qt GUI to define protocols visually
 - [ ] Generate protocol definition Python file from GUI input
 - [ ] save to xml/json for later loading

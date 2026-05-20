@@ -63,8 +63,7 @@ def frame_tuser_values(frame: AxiStreamFrame) -> list[int]:
 
 
 def forwarded_offset() -> int:
-    parse_beat_count = (IP_PAYLOAD_OFFSET + DATA_WIDTH_BYTES - 1) // DATA_WIDTH_BYTES
-    return parse_beat_count * DATA_WIDTH_BYTES
+    return IP_PAYLOAD_OFFSET
 
 
 def udp_frame() -> tuple[bytes, Ether]:
@@ -156,7 +155,7 @@ async def propagates_tuser_seen_after_payload_forwarding_started(dut):
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
 
     frame_bytes, _ = udp_frame()
-    first_payload_beat = forwarded_offset() // DATA_WIDTH_BYTES
+    first_payload_beat = (IP_PAYLOAD_OFFSET + DATA_WIDTH_BYTES - 1) // DATA_WIDTH_BYTES
     frame = await send_frame(
         dut,
         frame_bytes,
@@ -164,8 +163,10 @@ async def propagates_tuser_seen_after_payload_forwarding_started(dut):
     )
 
     assert_forwarded_frame(frame, frame_bytes)
-    assert frame_tuser_values(frame)[:DATA_WIDTH_BYTES] == [0] * DATA_WIDTH_BYTES
-    assert all(value == 1 for value in frame_tuser_values(frame)[DATA_WIDTH_BYTES:])
+    parse_tail_bytes = (-IP_PAYLOAD_OFFSET) % DATA_WIDTH_BYTES
+    clean_prefix = parse_tail_bytes + DATA_WIDTH_BYTES
+    assert frame_tuser_values(frame)[:clean_prefix] == [0] * clean_prefix
+    assert all(value == 1 for value in frame_tuser_values(frame)[clean_prefix:])
 
 
 @cocotb.test()

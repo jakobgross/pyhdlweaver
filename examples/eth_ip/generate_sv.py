@@ -12,12 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from examples.eth_ip.eth_ip import IP_FORWARD_UDP_PARSER, IP_PARSER, IP_ROUTE_BROADCAST_UDP_PARSER
 from pyhdlweaver.generators import GeneratedFile, SystemVerilogGenerator
-from pyhdlweaver.stream.axi_stream import STREAM_8, STREAM_32
+from pyhdlweaver.stream.axi_stream import STREAM_8, STREAM_32, AxisStream
 
 EXAMPLE_DIR = Path(__file__).resolve().parent
 HDL_DIR = EXAMPLE_DIR / "hdl"
 DEFAULT_OUTPUT = HDL_DIR / "eth_ip_parser.sv"
+DEFAULT_24BIT_OUTPUT = HDL_DIR / "eth_ip_parser_24bit.sv"
 DEFAULT_FORWARD_UDP_OUTPUT = HDL_DIR / "eth_ip_forward_udp_8bit.sv"
+DEFAULT_FORWARD_UDP_512BIT_OUTPUT = HDL_DIR / "eth_ip_forward_udp_512bit.sv"
 DEFAULT_ROUTE_BROADCAST_UDP_OUTPUT = HDL_DIR / "eth_ip_route_broadcast_udp_32bit.sv"
 
 
@@ -29,11 +31,27 @@ def generate_eth_ip_parser() -> GeneratedFile:
     )
 
 
+def generate_eth_ip_parser_24bit() -> GeneratedFile:
+    return SystemVerilogGenerator().generate(
+        protocol=IP_PARSER,
+        stream=AxisStream(data_width=24),
+        module_name="eth_ip_parser_24bit",
+    )
+
+
 def generate_eth_ip_forward_udp_8bit() -> GeneratedFile:
     return SystemVerilogGenerator().generate(
         protocol=IP_FORWARD_UDP_PARSER,
         stream=STREAM_8,
         module_name="eth_ip_forward_udp_8bit",
+    )
+
+
+def generate_eth_ip_forward_udp_512bit() -> GeneratedFile:
+    return SystemVerilogGenerator().generate(
+        protocol=IP_FORWARD_UDP_PARSER,
+        stream=AxisStream(data_width=512),
+        module_name="eth_ip_forward_udp_512bit",
     )
 
 
@@ -75,6 +93,16 @@ def main() -> None:
         help="generate the 8-bit AXI parser that forwards UDP payloads",
     )
     parser.add_argument(
+        "--forward-udp-512bit",
+        action="store_true",
+        help="generate the 512-bit AXI parser that forwards UDP payloads",
+    )
+    parser.add_argument(
+        "--parser-24bit",
+        action="store_true",
+        help="generate the 24-bit AXI Ethernet/IP parser",
+    )
+    parser.add_argument(
         "--route-broadcast-udp-32bit",
         action="store_true",
         help="generate the 32-bit router: broadcast->0, UDP->1, other->3",
@@ -83,13 +111,21 @@ def main() -> None:
 
     if args.all:
         write_generated_file(generate_eth_ip_parser(), DEFAULT_OUTPUT)
+        write_generated_file(generate_eth_ip_parser_24bit(), DEFAULT_24BIT_OUTPUT)
         write_generated_file(generate_eth_ip_forward_udp_8bit(), DEFAULT_FORWARD_UDP_OUTPUT)
+        write_generated_file(generate_eth_ip_forward_udp_512bit(), DEFAULT_FORWARD_UDP_512BIT_OUTPUT)
         write_generated_file(generate_eth_ip_route_broadcast_udp_32bit(), DEFAULT_ROUTE_BROADCAST_UDP_OUTPUT)
         return
 
     if args.route_broadcast_udp_32bit:
         generated = generate_eth_ip_route_broadcast_udp_32bit()
         default_output = DEFAULT_ROUTE_BROADCAST_UDP_OUTPUT
+    elif args.forward_udp_512bit:
+        generated = generate_eth_ip_forward_udp_512bit()
+        default_output = DEFAULT_FORWARD_UDP_512BIT_OUTPUT
+    elif args.parser_24bit:
+        generated = generate_eth_ip_parser_24bit()
+        default_output = DEFAULT_24BIT_OUTPUT
     elif args.forward_udp_8bit:
         generated = generate_eth_ip_forward_udp_8bit()
         default_output = DEFAULT_FORWARD_UDP_OUTPUT

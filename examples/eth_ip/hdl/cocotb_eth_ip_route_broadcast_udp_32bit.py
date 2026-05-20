@@ -57,9 +57,7 @@ async def reset_dut(dut) -> None:
 
 
 def forwarded_offset() -> int:
-    # First byte after the final parse beat boundary (beats are DATA_WIDTH_BYTES wide).
-    parse_beat_count = (IP_PAYLOAD_OFFSET + DATA_WIDTH_BYTES - 1) // DATA_WIDTH_BYTES
-    return parse_beat_count * DATA_WIDTH_BYTES
+    return IP_PAYLOAD_OFFSET
 
 
 async def send_frame(dut, frame_bytes: bytes) -> AxiStreamFrame:

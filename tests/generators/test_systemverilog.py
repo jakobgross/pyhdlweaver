@@ -20,7 +20,8 @@ def test_eth_ip_systemverilog_example_returns_generated_file():
     assert "localparam int PARSE_BEATS = 9;" in generated.content
     assert "eth_ethertype_reg[15:8] <= s_axis_tdata[7:0];" in generated.content
     assert "eth_ethertype_reg[7:0] <= s_axis_tdata[15:8];" in generated.content
-    assert "assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;" in generated.content
+    assert "assign m_axis_tuser = sticky_tuser | parser_drop |" in generated.content
+    assert "((state == ST_TAIL) ? tail_tuser_reg : s_axis_tuser);" in generated.content
     assert "ST_DROP" in generated.content
 
 

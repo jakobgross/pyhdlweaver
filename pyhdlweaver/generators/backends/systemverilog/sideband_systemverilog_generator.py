@@ -17,6 +17,7 @@ class SidebandSystemVerilogGenerator(SystemVerilogGenerator):
             raise TypeError("SidebandSystemVerilogGenerator requires a SidebandProtocol")
 
         plan = self.build_plan(protocol, stream, module_name)
+        payload_start_byte = (protocol.total_length - 1) % stream.keep_width + 1
         field_emitter = FieldExtractEmitter(plan)
         config_reg_declarations = [
             f"logic [{p.width - 1}:0] {p.name}_reg;"
@@ -34,6 +35,7 @@ class SidebandSystemVerilogGenerator(SystemVerilogGenerator):
             "sideband_body.sv.j2",
             plan=plan,
             beat_count_width=counter_width(plan.parse_beats),
+            payload_start_byte=payload_start_byte,
             field_declarations=field_emitter.emit_declarations(),
             comb_declarations=field_emitter.emit_comb_declarations(),
             comb_bypass_blocks=field_emitter.emit_comb_bypass_blocks(),
