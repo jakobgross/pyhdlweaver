@@ -94,7 +94,7 @@ async def routes_matching_port_to_tdest_0(dut):
     assert bytes(frame.tdata) == frame_bytes[PARSE_BYTES:]
     assert int(frame.tdest) == TDEST_MATCH
     assert int(frame.tuser) == 0
-    assert int(dut.udp_dport_reg.value) == DEFAULT_DST_PORT
+    assert int(dut.udp_dport.value) == DEFAULT_DST_PORT
     assert int(dut.cfg_dst_port_reg.value) == DEFAULT_DST_PORT
 
 
@@ -128,7 +128,7 @@ async def routes_matching_port_after_reconfiguration(dut):
     assert int(frame.tdest) == TDEST_MATCH
     # After the frame completes, both the config and field registers are stable.
     assert int(dut.cfg_dst_port_reg.value) == 5678
-    assert int(dut.udp_dport_reg.value) == 5678
+    assert int(dut.udp_dport.value) == 5678
 
 
 @cocotb.test()

@@ -24,8 +24,14 @@ module udp_port_router_8bit #(
   output logic m_axis_tvalid,
   input  logic m_axis_tready,
 
+  // configuration registers
   input  logic config_valid,
-  input  logic [15:0] cfg_dst_port
+  input  logic [15:0] cfg_dst_port,
+
+  // parsed fields
+  output logic [15:0] udp_dport,
+  output logic fields_valid,
+  output logic fields_fresh
 );
 
 localparam int PARSE_BEATS = 38;
@@ -49,6 +55,7 @@ logic drop_fire;
 logic drop_next;
 logic [TDEST_WIDTH-1:0] route_tdest_next;
 logic [TDEST_WIDTH-1:0] route_tdest_reg;
+logic fields_fresh;
 
 logic [15:0] udp_dport_reg;
 logic [15:0] udp_dport_comb;
@@ -73,6 +80,11 @@ assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;
 // Drive the selected route for every forwarded payload beat.
 assign m_axis_tdest = route_tdest_reg;
 
+// Expose all parsed field values as output ports.
+assign udp_dport = udp_dport_reg;
+// Assert when all header fields are captured and valid.
+assign fields_valid = (state != ST_PARSE);
+
 always_comb begin
   udp_dport_comb = udp_dport_reg;
   if (parse_fire && beat_count == PARSE_BEATS - 1) begin
@@ -96,6 +108,7 @@ always_ff @(posedge clk) begin
     sticky_tuser <= 1'b0;
     parser_drop <= 1'b0;
     route_tdest_reg <= '0;
+    fields_fresh <= 1'b0;
     udp_dport_reg <= 16'd0;
     cfg_dst_port_reg <= 16'h4d2;
   end else begin
@@ -105,6 +118,7 @@ always_ff @(posedge clk) begin
     if (parse_fire || payload_fire || drop_fire) begin
       sticky_tuser <= sticky_tuser | s_axis_tuser;
     end
+    fields_fresh <= 1'b0;
 
     case (state)
       ST_PARSE: begin
@@ -131,6 +145,7 @@ always_ff @(posedge clk) begin
           end else if (beat_count == PARSE_BEATS - 1) begin
             // Header is complete, so latch route and choose forward or drop.
             route_tdest_reg <= route_tdest_next;
+            fields_fresh <= 1'b1;
             if (drop_next) begin
               // Drop before any payload beat has been forwarded.
               state <= ST_DROP;

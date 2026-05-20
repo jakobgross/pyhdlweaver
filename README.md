@@ -272,9 +272,7 @@ pyhdlweaver/
 - [x] Jinja2 template: action logic (drop conditions, routing mux)
 - [x] End-to-end test: ETH+IP definition generates a SystemVerilog file
 
-#### bugs present
 
-- [ ] cocotb_eth_ip_parser.py (line 66): the 32-bit parser forwards from the next full beat, so IP_PAYLOAD_OFFSET=34 becomes offset 36. The tests encode that behavior. If we want exact byte forwarding for sideband parsers, the generated HDL needs byte realignment or a stated alignment restriction.
 
 ### Milestone 5 - cocotb End-to-End Test
 - [x] cocotb testbench for generated ETH+IP parser

@@ -101,7 +101,7 @@ async def forwards_udp_packet_on_8_bit_axi(dut):
     assert bytes(frame.tdata) == frame_bytes[IP_PAYLOAD_OFFSET:]
     assert int(frame.tdest) == 0
     assert int(frame.tuser) == 0
-    assert int(dut.ip_protocol_reg.value) == packet[IP].proto
+    assert int(dut.ip_protocol.value) == packet[IP].proto
     assert packet[IP].proto == IP_PROTO_UDP
     assert int(dut.non_udp_drop_count.value) == 0
 
@@ -118,7 +118,7 @@ async def drops_tcp_packet_on_8_bit_axi(dut):
 
     assert source.idle()
     assert sink.empty()
-    assert int(dut.ip_protocol_reg.value) == packet[IP].proto
+    assert int(dut.ip_protocol.value) == packet[IP].proto
     assert packet[IP].proto == IP_PROTO_TCP
     assert int(dut.non_udp_drop_count.value) == 1
 

@@ -98,8 +98,8 @@ async def routes_unicast_udp_to_tdest_1(dut):
     assert bytes(frame.tdata) == frame_bytes[forwarded_offset():]
     assert int(frame.tdest) == TDEST_UDP
     assert int(frame.tuser) == 0
-    assert int(dut.ip_protocol_reg.value) == IP_PROTO_UDP
-    assert int(dut.ip_dst_reg.value) == int(IPv4Address("192.168.1.20"))
+    assert int(dut.ip_protocol.value) == IP_PROTO_UDP
+    assert int(dut.ip_dst.value) == int(IPv4Address("192.168.1.20"))
 
 
 @cocotb.test()
@@ -112,8 +112,8 @@ async def routes_unicast_tcp_to_tdest_3(dut):
     assert bytes(frame.tdata) == frame_bytes[forwarded_offset():]
     assert int(frame.tdest) == TDEST_OTHER
     assert int(frame.tuser) == 0
-    assert int(dut.ip_protocol_reg.value) == IP_PROTO_TCP
-    assert int(dut.ip_dst_reg.value) == int(IPv4Address("10.0.0.2"))
+    assert int(dut.ip_protocol.value) == IP_PROTO_TCP
+    assert int(dut.ip_dst.value) == int(IPv4Address("10.0.0.2"))
 
 
 @cocotb.test()
@@ -129,7 +129,7 @@ async def routes_broadcast_tcp_to_tdest_0(dut):
     assert bytes(frame.tdata) == frame_bytes[forwarded_offset():]
     assert int(frame.tdest) == TDEST_BROADCAST
     assert int(frame.tuser) == 0
-    assert int(dut.ip_dst_reg.value) == IP_BROADCAST
+    assert int(dut.ip_dst.value) == IP_BROADCAST
 
 
 @cocotb.test()
@@ -144,8 +144,8 @@ async def routes_broadcast_udp_to_tdest_0(dut):
     assert bytes(frame.tdata) == frame_bytes[forwarded_offset():]
     assert int(frame.tdest) == TDEST_BROADCAST
     assert int(frame.tuser) == 0
-    assert int(dut.ip_dst_reg.value) == IP_BROADCAST
-    assert int(dut.ip_protocol_reg.value) == IP_PROTO_UDP
+    assert int(dut.ip_dst.value) == IP_BROADCAST
+    assert int(dut.ip_protocol.value) == IP_PROTO_UDP
 
 
 @cocotb.test()

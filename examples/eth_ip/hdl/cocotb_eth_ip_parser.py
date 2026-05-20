@@ -119,13 +119,13 @@ async def captures_fields_from_scapy_udp_frame(dut):
     expected_version_ihl = (ip.version << 4) | ip.ihl
     expected_flags_frag = (int(ip.flags) << 13) | ip.frag
 
-    assert int(dut.eth_ethertype_reg.value) == packet.type
-    assert int(dut.ip_version_ihl_reg.value) == expected_version_ihl
-    assert int(dut.ip_total_length_reg.value) == ip.len
-    assert int(dut.ip_flags_frag_reg.value) == expected_flags_frag
-    assert int(dut.ip_protocol_reg.value) == ip.proto
-    assert int(dut.ip_src_reg.value) == int(IPv4Address(ip.src))
-    assert int(dut.ip_dst_reg.value) == int(IPv4Address(ip.dst))
+    assert int(dut.eth_ethertype.value) == packet.type
+    assert int(dut.ip_version_ihl.value) == expected_version_ihl
+    assert int(dut.ip_total_length.value) == ip.len
+    assert int(dut.ip_flags_frag.value) == expected_flags_frag
+    assert int(dut.ip_protocol.value) == ip.proto
+    assert int(dut.ip_src.value) == int(IPv4Address(ip.src))
+    assert int(dut.ip_dst.value) == int(IPv4Address(ip.dst))
 
 
 @cocotb.test()
@@ -137,7 +137,7 @@ async def captures_non_ipv4_ethertype(dut):
 
     assert_forwarded_frame(frame, frame_bytes)
     assert int(frame.tuser) == 0
-    assert int(dut.eth_ethertype_reg.value) == packet.type
+    assert int(dut.eth_ethertype.value) == packet.type
 
 
 @cocotb.test()

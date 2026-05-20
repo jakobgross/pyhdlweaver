@@ -22,8 +22,18 @@ module eth_ip_parser #(
   output logic m_axis_tuser,
   output logic [TDEST_WIDTH-1:0] m_axis_tdest,
   output logic m_axis_tvalid,
-  input  logic m_axis_tready
+  input  logic m_axis_tready,
 
+  // parsed fields
+  output logic [15:0] eth_ethertype,
+  output logic [7:0] ip_version_ihl,
+  output logic [15:0] ip_total_length,
+  output logic [15:0] ip_flags_frag,
+  output logic [7:0] ip_protocol,
+  output logic [31:0] ip_src,
+  output logic [31:0] ip_dst,
+  output logic fields_valid,
+  output logic fields_fresh
 );
 
 localparam int PARSE_BEATS = 9;
@@ -47,6 +57,7 @@ logic drop_fire;
 logic drop_next;
 logic [TDEST_WIDTH-1:0] route_tdest_next;
 logic [TDEST_WIDTH-1:0] route_tdest_reg;
+logic fields_fresh;
 
 logic [15:0] eth_ethertype_reg;
 logic [7:0] ip_version_ihl_reg;
@@ -76,6 +87,17 @@ assign m_axis_tuser = sticky_tuser | parser_drop | s_axis_tuser;
 // Drive the selected route for every forwarded payload beat.
 assign m_axis_tdest = route_tdest_reg;
 
+// Expose all parsed field values as output ports.
+assign eth_ethertype = eth_ethertype_reg;
+assign ip_version_ihl = ip_version_ihl_reg;
+assign ip_total_length = ip_total_length_reg;
+assign ip_flags_frag = ip_flags_frag_reg;
+assign ip_protocol = ip_protocol_reg;
+assign ip_src = ip_src_reg;
+assign ip_dst = ip_dst_reg;
+// Assert when all header fields are captured and valid.
+assign fields_valid = (state != ST_PARSE);
+
 always_comb begin
   ip_dst_comb = ip_dst_reg;
   if (parse_fire && beat_count == PARSE_BEATS - 1) begin
@@ -97,6 +119,7 @@ always_ff @(posedge clk) begin
     sticky_tuser <= 1'b0;
     parser_drop <= 1'b0;
     route_tdest_reg <= '0;
+    fields_fresh <= 1'b0;
     eth_ethertype_reg <= 16'd0;
     ip_version_ihl_reg <= 8'd0;
     ip_total_length_reg <= 16'd0;
@@ -108,6 +131,7 @@ always_ff @(posedge clk) begin
     if (parse_fire || payload_fire || drop_fire) begin
       sticky_tuser <= sticky_tuser | s_axis_tuser;
     end
+    fields_fresh <= 1'b0;
 
     case (state)
       ST_PARSE: begin
@@ -156,6 +180,7 @@ always_ff @(posedge clk) begin
           end else if (beat_count == PARSE_BEATS - 1) begin
             // Header is complete, so latch route and choose forward or drop.
             route_tdest_reg <= route_tdest_next;
+            fields_fresh <= 1'b1;
             if (drop_next) begin
               // Drop before any payload beat has been forwarded.
               state <= ST_DROP;
