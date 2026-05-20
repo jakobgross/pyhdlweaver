@@ -16,6 +16,7 @@ module {{ plan.module_name }} #(
   input  logic s_axis_tvalid,
   output logic s_axis_tready,
 
+{% if forward | default(true) %}
   output logic [DATA_WIDTH-1:0] m_axis_tdata,
   output logic [KEEP_WIDTH-1:0] m_axis_tkeep,
   output logic m_axis_tlast,
@@ -24,6 +25,7 @@ module {{ plan.module_name }} #(
   output logic m_axis_tvalid,
   input  logic m_axis_tready,
 
+{% endif %}
 {% if plan.config_ports %}
   // configuration registers
   input  logic config_valid,

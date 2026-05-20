@@ -2,9 +2,11 @@ import pytest
 
 from examples.eth_ip.eth_ip import IP_PARSER
 from examples.eth_ip.generate_sv import generate_eth_ip_forward_udp_8bit, generate_eth_ip_parser
+from examples.itch.itch import ITCH_PARSER
+from examples.itch.generate_sv import generate_8bit as generate_itch_8bit, generate_32bit as generate_itch_32bit
 from pyhdlweaver.actions import DropOnMismatch, DropOnRegisterMismatch, RouteByRegister, RouteByValue, RouteToAll
 from pyhdlweaver.generators import GeneratedFile, SystemVerilogGenerator
-from pyhdlweaver.protocols import SidebandProtocol
+from pyhdlweaver.protocols import DiscriminatedProtocol, SidebandProtocol
 from pyhdlweaver.protocols.definitions import Field
 from pyhdlweaver.stream.axi_stream import STREAM_32, AxisStream
 
@@ -175,3 +177,112 @@ def test_systemverilog_generator_rejects_route_to_all_for_tdest():
 
     with pytest.raises(NotImplementedError, match="RouteToAll"):
         SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+
+# ── DiscriminatedProtocol / ITCH tests ──────────────────────────────────────
+
+def test_itch_discriminated_protocol_has_correct_variant_count():
+    assert len(ITCH_PARSER.variants) == 22
+    assert max(ITCH_PARSER.variant_length.values()) == 50
+
+
+def test_itch_8bit_returns_generated_file():
+    generated = generate_itch_8bit()
+
+    assert isinstance(generated, GeneratedFile)
+    assert generated.name == "itch_parser_8bit.sv"
+    assert "module itch_parser_8bit #(" in generated.content
+    assert "parameter int DATA_WIDTH = 8" in generated.content
+    assert "localparam int PARSE_BEATS = 50;" in generated.content
+
+
+def test_itch_32bit_returns_generated_file():
+    generated = generate_itch_32bit()
+
+    assert isinstance(generated, GeneratedFile)
+    assert generated.name == "itch_parser_32bit.sv"
+    assert "parameter int DATA_WIDTH = 32" in generated.content
+    assert "localparam int PARSE_BEATS = 13;" in generated.content
+
+
+def test_itch_generated_sv_has_all_common_field_ports():
+    generated = generate_itch_8bit()
+
+    assert "output logic [7:0] message_type," in generated.content
+    assert "output logic [15:0] stock_locate," in generated.content
+    assert "output logic [15:0] tracking_number," in generated.content
+    assert "output logic [47:0] timestamp," in generated.content
+
+
+def test_itch_generated_sv_has_variant_field_ports():
+    generated = generate_itch_8bit()
+
+    # Order-management fields (shared across A/F/D/E/C/X/P)
+    assert "output logic [63:0] order_reference_number," in generated.content
+    assert "output logic [7:0] buy_sell_indicator," in generated.content
+    assert "output logic [31:0] shares," in generated.content
+    assert "output logic [31:0] price," in generated.content
+    # Execution fields (E/C)
+    assert "output logic [31:0] executed_shares," in generated.content
+    assert "output logic [63:0] match_number," in generated.content
+    # Replace fields (U)
+    assert "output logic [63:0] original_order_reference_number," in generated.content
+    assert "output logic [63:0] new_order_reference_number," in generated.content
+    # NOII fields (I) — the longest message, determines PARSE_BEATS
+    assert "output logic [63:0] paired_shares," in generated.content
+    assert "output logic [7:0] price_variation_indicator," in generated.content
+
+
+def test_itch_generated_sv_captures_overlapping_fields_on_same_beat():
+    # On an 8-bit bus, beat 11 is the first byte of the variant payload.
+    # 'S' System Event has event_code there; order-management variants have
+    # order_reference_number[63:56] at the same offset.  With variant-conditional
+    # capture, both registers must appear inside the beat-11 block, each in its
+    # own case branch keyed by the message_type discriminator.
+    generated = generate_itch_8bit()
+
+    assert "11: begin" in generated.content
+    content = generated.content
+    idx = content.index("            11: begin")
+    end_idx = content.index("            12: begin", idx)
+    beat_11_block = content[idx:end_idx]
+
+    # Both fields captured conditionally on beat 11, each under its own variant keys.
+    assert "event_code_reg[7:0]" in beat_11_block
+    assert "order_reference_number_reg[63:56]" in beat_11_block
+
+
+def test_itch_generated_sv_has_discriminated_fsm():
+    generated = generate_itch_8bit()
+
+    assert "ST_PARSE" in generated.content
+    assert "ST_DRAIN" in generated.content
+    assert "fields_fresh <= 1'b1;" in generated.content
+    assert "fields_valid_reg <= 1'b1;" in generated.content
+    assert "assign fields_valid = fields_valid_reg;" in generated.content
+
+
+def test_systemverilog_generator_dispatches_discriminated_protocol():
+    generated = SystemVerilogGenerator().generate(ITCH_PARSER, STREAM_32)
+
+    assert generated.name == "itch_parser.sv"
+    assert "module itch_parser #(" in generated.content
+
+
+def test_discriminated_protocol_minimal_single_variant():
+    disc_field = Field("kind", offset=0, width=8)
+    payload    = Field("value", offset=1, width=16)
+    protocol = DiscriminatedProtocol(
+        name="simple",
+        discriminator=disc_field,
+        fields=[disc_field],
+        variants={0: [payload]},
+        variant_length={0: 3},
+    )
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+    assert "output logic [7:0] kind," in generated.content
+    assert "output logic [15:0] value," in generated.content
+    assert "localparam int PARSE_BEATS = 1;" in generated.content
+    assert "ST_PARSE" in generated.content

@@ -1,0 +1,108 @@
+localparam int PARSE_BEATS = {{ parse_beats }};
+
+typedef enum logic [0:0] {
+  // Capture all variant fields beat by beat.
+  ST_PARSE,
+  // Consume the tail of an over-long (malformed) input frame.
+  ST_DRAIN
+} state_t;
+
+state_t state;
+logic [{{ beat_count_width - 1 }}:0] beat_count;
+logic fields_valid_reg;
+
+{% for declaration in field_declarations %}
+{{ declaration }}
+{% endfor %}
+
+logic parse_fire;
+logic drain_fire;
+assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
+assign drain_fire = (state == ST_DRAIN) && s_axis_tvalid && s_axis_tready;
+
+{% if forward | default(true) %}
+// Hold input during drain; otherwise follow downstream readiness.
+assign s_axis_tready = (state == ST_DRAIN) ? 1'b1 : m_axis_tready;
+
+// Pass the input stream through during parsing; suppress during drain.
+assign m_axis_tdata  = s_axis_tdata;
+assign m_axis_tkeep  = s_axis_tkeep;
+assign m_axis_tlast  = s_axis_tlast;
+assign m_axis_tuser  = s_axis_tuser;
+assign m_axis_tdest  = '0;
+assign m_axis_tvalid = (state == ST_PARSE) && s_axis_tvalid;
+{% else %}
+assign s_axis_tready = 1'b1;
+{% endif %}
+
+// Expose all parsed fields as output ports.
+{% for field in plan.protocol.fields %}
+assign {{ field.name }} = {{ field.name }}_reg;
+{% endfor %}
+assign fields_valid = fields_valid_reg;
+
+always_ff @(posedge clk) begin
+  if (rst) begin
+    state <= ST_PARSE;
+    beat_count <= '0;
+    fields_valid_reg <= 1'b0;
+    fields_fresh <= 1'b0;
+{% for assignment in field_reset_assignments %}
+    {{ assignment }}
+{% endfor %}
+  end else begin
+    fields_fresh <= 1'b0;
+
+    case (state)
+      ST_PARSE: begin
+        if (parse_fire) begin
+          case (beat_count)
+{% for entry in beat_entries %}
+            {{ entry.beat }}: begin
+{% for assignment in entry.common %}
+              {{ assignment }}
+{% endfor %}
+{% if entry.variants %}
+              case ({{ discriminator_name }}_reg)
+{% for ventry in entry.variants %}
+                {{ ventry.key_literals | join(', ') }}: begin
+{% for assignment in ventry.assignments %}
+                  {{ assignment }}
+{% endfor %}
+                end
+{% endfor %}
+                default: ;
+              endcase
+{% endif %}
+            end
+{% endfor %}
+            default: ;
+          endcase
+
+          if (s_axis_tlast) begin
+            // Frame complete — signal fresh regardless of which variant arrived.
+            fields_fresh <= 1'b1;
+            fields_valid_reg <= 1'b1;
+            beat_count <= '0;
+          end else if (beat_count == PARSE_BEATS - 1) begin
+            // Over-long frame: drain the remainder without signalling fresh.
+            beat_count <= '0;
+            state <= ST_DRAIN;
+          end else begin
+            beat_count <= beat_count + 1'b1;
+          end
+        end
+      end
+
+      ST_DRAIN: begin
+        if (drain_fire && s_axis_tlast) begin
+          state <= ST_PARSE;
+        end
+      end
+
+      default: begin
+        state <= ST_PARSE;
+      end
+    endcase
+  end
+end

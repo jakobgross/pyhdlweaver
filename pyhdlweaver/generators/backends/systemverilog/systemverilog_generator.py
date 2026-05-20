@@ -23,7 +23,7 @@ from pyhdlweaver.generators.backends.systemverilog.generation_plan import Genera
 from pyhdlweaver.generators.backends.systemverilog.route_condition import RouteCondition
 from pyhdlweaver.generators.backends.systemverilog.template_renderer import TemplateRenderer
 from pyhdlweaver.generators.backends.systemverilog.utils import optional_tdest, sv_identifier, sv_int, tdest
-from pyhdlweaver.protocols import FixedProtocol, MultiMessageProtocol, Protocol, SidebandProtocol
+from pyhdlweaver.protocols import DiscriminatedProtocol, FixedProtocol, MultiMessageProtocol, Protocol, SidebandProtocol
 from pyhdlweaver.protocols.definitions import Field, StreamLayout
 from pyhdlweaver.stream.axi_stream import AxisStream
 
@@ -45,6 +45,12 @@ class SystemVerilogGenerator(CodeGenerator):
             )
 
             return SidebandSystemVerilogGenerator().generate(protocol, stream, module_name)
+        if isinstance(protocol, DiscriminatedProtocol):
+            from pyhdlweaver.generators.backends.systemverilog.discriminated_systemverilog_generator import (
+                DiscriminatedSystemVerilogGenerator,
+            )
+
+            return DiscriminatedSystemVerilogGenerator().generate(protocol, stream, module_name)
         if isinstance(protocol, MultiMessageProtocol):
             from pyhdlweaver.generators.backends.systemverilog.multi_message_systemverilog_generator import (
                 MultiMessageSystemVerilogGenerator,

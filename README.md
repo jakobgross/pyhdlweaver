@@ -230,6 +230,16 @@ pyhdlweaver/
 
 ---
 
+## General TODOs
+- [ ] Add documentation to backend generator classes
+- [ ] Add documentation to protocol definition classes
+- [ ] Add documentation to field action classes
+- [ ] Add docstrings to all public methods
+- [ ] Add type hints to all public methods
+- [ ] Add github actions for linting
+- [ ] Add github actions for running pytest
+- [ ] Add github actions for example cocotb tests
+
 ## Milestones
 
 ### Milestone 1 - Core Data Model
@@ -287,7 +297,7 @@ pyhdlweaver/
 ### Milestone 6 - Full HFT Stack
 - [x] UDP protocol definition
 - [x] MoldUDP protocol definition
-- [ ] ITCH 5.0 protocol definition (DiscriminatedProtocol)
+- [x] ITCH 5.0 protocol definition (DiscriminatedProtocol)
 - [ ] Full stack: Eth+IP+UDP+MoldUDP+ITCH generator
 - [ ] Broadcast splitter to DMA
 - [ ] cocotb integration tests with realistic packet captures

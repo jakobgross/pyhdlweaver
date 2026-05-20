@@ -17,6 +17,7 @@ class DiscriminatedProtocol(FixedProtocol):
     discriminator: Field
     variants: Mapping[int, Sequence[Field]] = field(default_factory=dict)
     variant_length: Optional[Mapping[int, int]] = None
+    forward: bool = True
 
     @property
     def protocol_kind(self) -> str:
