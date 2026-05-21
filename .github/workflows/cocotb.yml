@@ -82,6 +82,12 @@ jobs:
         env:
           COCOTB_LOG_LEVEL: WARNING
 
+      - name: Run ETH to Mold DMA cocotbs
+        run: |
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/eth-to-mold-dma-64.xml" make -C examples/eth_to_mold_dma/hdl test_64bit
+        env:
+          COCOTB_LOG_LEVEL: WARNING
+
       - name: Publish cocotb results
         if: ${{ !cancelled() }}
         uses: dorny/test-reporter@v3

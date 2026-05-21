@@ -2,6 +2,7 @@ import pytest
 
 from examples.eth_ip.eth_ip import IP_PARSER
 from examples.eth_ip.generate_sv import generate_eth_ip_forward_udp_8bit, generate_eth_ip_parser
+from examples.eth_to_mold_dma.generate_sv import generate_64bit as generate_eth_to_mold_dma_64bit
 from examples.itch.itch import ITCH_PARSER
 from examples.itch.generate_sv import generate_8bit as generate_itch_8bit, generate_32bit as generate_itch_32bit
 from pyhdlweaver.actions import DropOnMismatch, DropOnRegisterMismatch, RouteByRegister, RouteByValue, RouteToAll
@@ -44,6 +45,21 @@ def test_eth_ip_forward_udp_8bit_systemverilog_example_returns_generated_file():
     assert "parameter int DATA_WIDTH = 8" in generated.content
     assert "output logic [31:0] non_udp_drop_count" in generated.content
     assert "drop_next = drop_next | (ip_protocol_reg != 8'h11);" in generated.content
+
+
+def test_eth_to_mold_dma_64bit_systemverilog_example_returns_generated_file():
+    generated = generate_eth_to_mold_dma_64bit()
+
+    assert isinstance(generated, GeneratedFile)
+    assert generated.name == "eth_to_mold_dma_64bit.sv"
+    assert "module eth_to_mold_dma_64bit #(" in generated.content
+    assert "parameter int DATA_WIDTH = 64" in generated.content
+    assert "input  logic [15:0] cfg_expected_dst_port" in generated.content
+    assert "output logic [31:0] wrong_port_drop_count" in generated.content
+    assert "localparam int OUTER_TOTAL_BYTES = 62;" in generated.content
+    assert "localparam int SUB_HEADER_BYTES = 2;" in generated.content
+    assert "assign m_axis_tdata  = scratch_data_reg[DATA_WIDTH-1:0];" in generated.content
+    assert "drop_next = drop_next | !(udp_dst_port_reg == cfg_expected_dst_port_reg);" in generated.content
 
 
 def test_systemverilog_generator_dispatches_sideband_protocol():

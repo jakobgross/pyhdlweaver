@@ -60,18 +60,34 @@ class MultiMessageSystemVerilogGenerator(SystemVerilogGenerator):
         length_field = sub_proto.length_field
         scratch_count_width = counter_width((2 * bus_bytes) + 1)
         body_count_width = max(length_field.width, scratch_count_width)
-        outer_layout = StreamLayout(stream, byte_offset=0)
         outer_parse_beats = (outer_total_length + bus_bytes - 1) // bus_bytes
         outer_tail_start = (outer_total_length - 1) % bus_bytes + 1
+        outer_layout = StreamLayout(stream, byte_offset=0)
 
+        base_plan = self.build_plan(protocol, stream, module_name)
         outer_plan = GenerationPlan(
             protocol=protocol,
             stream=stream,
             layout=outer_layout,
             module_name=module_name or f"{protocol.name}_parser",
             parse_beats=outer_parse_beats,
+            config_ports=base_plan.config_ports,
+            drop_conditions=base_plan.drop_conditions,
         )
         outer_emitter = FieldExtractEmitter(outer_plan)
+
+        config_reg_declarations = [
+            f"logic [{p.width - 1}:0] {p.name}_reg;"
+            for p in outer_plan.config_ports
+        ]
+        config_reg_reset_assignments = [
+            f"{p.name}_reg <= {sv_int(p.width, p.default_value or 0)};"
+            for p in outer_plan.config_ports
+        ]
+        config_reg_update_assignments = [
+            f"{p.name}_reg <= {p.name};"
+            for p in outer_plan.config_ports
+        ]
 
         # Determine if msg_count is captured on the final outer beat (needs comb bypass).
         outer_final_beat = outer_parse_beats - 1
@@ -125,6 +141,9 @@ class MultiMessageSystemVerilogGenerator(SystemVerilogGenerator):
             sub_field_capture_case_items=sub_field_capture_case_items,
             sub_comb_bypass_blocks=sub_comb_bypass_blocks,
             sub_output_assignments=sub_output_assignments,
+            config_reg_declarations=config_reg_declarations,
+            config_reg_reset_assignments=config_reg_reset_assignments,
+            config_reg_update_assignments=config_reg_update_assignments,
         )
 
         extra_parsed_ports = [

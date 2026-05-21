@@ -75,15 +75,18 @@ pip install -e ".[hdl]"
 
 ### Available examples
 
-| Example         | Protocol type            | Description                                              |
-| --------------- | ------------------------ | -------------------------------------------------------- |
-| `eth_ip`        | `SidebandProtocol`       | ETH+IP header parsing, UDP forwarding, broadcast routing |
-| `udp`           | `SidebandProtocol`       | UDP port router and range-based classifier               |
-| `mold_udp`      | `LengthPrefixedProtocol` | MoldUDP64 multi-message envelope parser                  |
-| `itch`          | `DiscriminatedProtocol`  | ITCH 5.0 full spec, 22 message types                     |
-| `hft_pipelined` | stacked                  | Full HFT stack: UDP + MoldUDP + ITCH chained             |
+| Example             | Protocol type            | Description                                              |
+| ------------------- | ------------------------ | -------------------------------------------------------- |
+| `eth_ip`            | `SidebandProtocol`       | ETH+IP header parsing, UDP forwarding, broadcast routing |
+| `udp`               | `SidebandProtocol`       | UDP port router and range-based classifier               |
+| `mold_udp`          | `LengthPrefixedProtocol` | MoldUDP64 multi-message envelope parser                  |
+| `itch`              | `DiscriminatedProtocol`  | ITCH 5.0 full spec, 22 message types                     |
+| `hft_pipelined`     | stacked                  | Full HFT stack: UDP + MoldUDP + ITCH chained             |
+| `all_in_one_hft`    | stacked                  | Full HFT stack in one generated parser                   |
+| `eth_to_mold_dma`   | `MultiMessageProtocol`   | ETH+IP+UDP+MoldUDP message splitter for DMA              |
 
-Each example has a `generate_sv.py` and `generate_c.py`. Print output to stdout:
+Each example has a `generate_sv.py`. Software parser examples also have
+`generate_c.py`. Print output to stdout:
 
 ```
 python examples/eth_ip/generate_sv.py
@@ -105,13 +108,15 @@ pytest tests/
 
 Cocotb simulation tests (requires `iverilog` and `make`, venv must be active):
 
-| Example         | Make targets                                                                                                      |
-| --------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `eth_ip`        | `test_eth_ip_32` `test_eth_ip_24` `test_eth_ip_udp_8` `test_eth_ip_udp_512` `test_eth_ip_route_broadcast_udp_32` |
-| `udp`           | `test_udp_port_router_8` `test_udp_classifier_64`                                                                |
-| `mold_udp`      | `test_mold_udp_8` `test_mold_udp_24` `test_mold_udp_32` `test_mold_udp_512` `test_mold_udp_all`                 |
-| `itch`          | `test_itch_8bit` `test_itch_32bit` `test_itch_64bit`                                                             |
-| `hft_pipelined` | `test_8bit` `test_64bit` `test_80bit`                                                                            |
+| Example             | Make targets                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `eth_ip`            | `test_eth_ip_32` `test_eth_ip_24` `test_eth_ip_udp_8` `test_eth_ip_udp_512` `test_eth_ip_route_broadcast_udp_32` |
+| `udp`               | `test_udp_port_router_8` `test_udp_classifier_64`                                                                |
+| `mold_udp`          | `test_mold_udp_8` `test_mold_udp_24` `test_mold_udp_32` `test_mold_udp_512` `test_mold_udp_all`                 |
+| `itch`              | `test_itch_8bit` `test_itch_32bit` `test_itch_64bit`                                                             |
+| `hft_pipelined`     | `test_8bit` `test_64bit` `test_80bit`                                                                            |
+| `all_in_one_hft`    | `test_8bit` `test_64bit`                                                                                         |
+| `eth_to_mold_dma`   | `test_64bit`                                                                                                     |
 
 ```
 make -C examples/eth_ip/hdl test_eth_ip_32
@@ -119,13 +124,14 @@ make -C examples/eth_ip/hdl test_eth_ip_32
 
 C parser tests (built and run via make):
 
-| Example         | Make target                                  |
-| --------------- | -------------------------------------------- |
-| `eth_ip`        | `test_eth_ip_forward_udp`                    |
-| `udp`           | `test_udp_port_router` `test_udp_classifier` |
-| `mold_udp`      | `test_mold_udp`                              |
-| `itch`          | `test_itch_parser`                           |
-| `hft_pipelined` | `test_hft_pipelined`                         |
+| Example             | Make target                                  |
+| ------------------- | -------------------------------------------- |
+| `eth_ip`            | `test_eth_ip_forward_udp`                    |
+| `udp`               | `test_udp_port_router` `test_udp_classifier` |
+| `mold_udp`          | `test_mold_udp`                              |
+| `itch`              | `test_itch_parser`                           |
+| `hft_pipelined`     | `test_hft_pipelined`                         |
+| `all_in_one_hft`    | `test_all_in_one_hft`                        |
 
 ```
 make -C examples/eth_ip/c test_eth_ip_forward_udp
@@ -342,6 +348,8 @@ pyhdlweaver/
     mold_udp/                MoldUDP parser
     itch/                    ITCH 5.0 parser
     hft_pipelined/           Full HFT stack pipelined parser
+    all_in_one_hft/          Full HFT stack in one parser
+    eth_to_mold_dma/         Ethernet to MoldUDP DMA parser
     sbe/                     SBE XML loader  [not yet]
   README.md
   pyproject.toml
