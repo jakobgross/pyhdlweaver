@@ -27,16 +27,14 @@ DEFAULT_MIN_SPORT = 1024
 DEFAULT_MAX_SPORT = 65535
 DEFAULT_BLOCKED_CHECKSUM = 0  # drop zero-checksum UDP (RFC 768 "no checksum")
 
-UDP_DPORT = Field(
-    "udp_dport",
-    offset=36,
-    width=16,
-    actions=[RouteByRegister(register="dst_port", destination=0, default=1, default_value=DEFAULT_DST_PORT)],
-)
+UDP_DPORT     = Field("udp_dport",     offset=36, width=16,
+                     actions=[RouteByRegister(register="dst_port", destination=0, default=1, default_value=DEFAULT_DST_PORT)])
+UDP_LENGTH    = Field("udp_length",    offset=38, width=16)
+UDP_CHECKSUM  = Field("udp_checksum",  offset=40, width=16)
 
 UDP_PORT_ROUTER = SidebandProtocol(
     name="udp_port_router",
-    fields=[UDP_DPORT],
+    fields=[UDP_DPORT, UDP_LENGTH, UDP_CHECKSUM],
     total_length=UDP_PAYLOAD_OFFSET,
 )
 

@@ -298,7 +298,8 @@ pyhdlweaver/
 - [x] UDP protocol definition
 - [x] MoldUDP protocol definition
 - [x] ITCH 5.0 protocol definition (DiscriminatedProtocol)
-- [ ] Full stack: Eth+IP+UDP+MoldUDP+ITCH generator
+- [x] Stitch all (ETHIP + UDP + MoldUDP + ITCH) into a single SV file for a simple pipelined parser
+- [ ] Full stack: Eth+IP+UDP+MoldUDP+ITCH generator (Do all the parsing in one parser for throughput and timing)
 - [ ] Broadcast splitter to DMA
 - [ ] cocotb integration tests with realistic packet captures
 
@@ -310,6 +311,14 @@ pyhdlweaver/
 - [ ] Jinja2 template for register map in SystemVerilog
 - [ ] C header file generation for PS-side driver
 
+### Milestone 9 - Reverse Parser / Packet Generator / Serializer
+- [ ] Protocol and Bus Definitions stay the same
+- [ ] New Backend Generator(s) for packet generation instead of parsing
+- [ ] Jinja2 template for packet generator module
+- [ ] Generate a packet generator for ETH+IP
+- [ ] Cocotb Tests that check the output
+- [ ] Cocotb Round-trip test: generate a packet, feed it into the parser, check that the parsed fields match the original definition
+- [ ] Generate a packet generator for the full stack (ETH+IP+UDP+MoldUDP+ITCH)
 
 ### Milestone 8 - Protocol Sources
 - [ ] `ProtocolSource` abstract base class

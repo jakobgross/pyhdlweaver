@@ -8,8 +8,8 @@ from examples.udp.udp import DEFAULT_DST_PORT
 CLOCK_PERIOD_NS = 10
 DATA_WIDTH_BYTES = 1
 
-# udp_dport at offset 36, width 16 => last byte at offset 37, so parse beats = 38
-PARSE_BYTES = 38
+# last parsed field: udp_checksum at offset 40, width 16 => parse beats = 42
+PARSE_BYTES = 42
 
 TDEST_MATCH = 0
 TDEST_OTHER = 1
