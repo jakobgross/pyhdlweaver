@@ -23,40 +23,55 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[hdl]"
 
+      - name: Create result directory
+        run: mkdir -p test-results/cocotb
+
       - name: Run ETH/IP cocotbs
-        run: >
-          make -C examples/eth_ip/hdl
-          test_eth_ip_32
-          test_eth_ip_24
-          test_eth_ip_udp_8
-          test_eth_ip_udp_512
-          test_eth_ip_route_broadcast_udp_32
+        run: |
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/eth-ip-32.xml" make -C examples/eth_ip/hdl test_eth_ip_32
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/eth-ip-24.xml" make -C examples/eth_ip/hdl test_eth_ip_24
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/eth-ip-udp-8.xml" make -C examples/eth_ip/hdl test_eth_ip_udp_8
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/eth-ip-udp-512.xml" make -C examples/eth_ip/hdl test_eth_ip_udp_512
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/eth-ip-route-broadcast-udp-32.xml" make -C examples/eth_ip/hdl test_eth_ip_route_broadcast_udp_32
         env:
           COCOTB_LOG_LEVEL: WARNING
 
       - name: Run HFT cocotbs
-        run: make -C examples/hft_pipelined/hdl test
+        run: |
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/hft-pipelined-8.xml" make -C examples/hft_pipelined/hdl test_8bit
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/hft-pipelined-64.xml" make -C examples/hft_pipelined/hdl test_64bit
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/hft-pipelined-80.xml" make -C examples/hft_pipelined/hdl test_80bit
         env:
           COCOTB_LOG_LEVEL: WARNING
 
       - name: Run ITCH cocotbs
-        run: >
-          make -C examples/itch/hdl
-          test_itch_8bit
-          test_itch_32bit
-          test_itch_64bit
+        run: |
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/itch-8.xml" make -C examples/itch/hdl test_itch_8bit
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/itch-32.xml" make -C examples/itch/hdl test_itch_32bit
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/itch-64.xml" make -C examples/itch/hdl test_itch_64bit
         env:
           COCOTB_LOG_LEVEL: WARNING
 
       - name: Run MoldUDP cocotbs
-        run: make -C examples/mold_udp/hdl test_mold_udp_all
+        run: |
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/mold-udp-8.xml" make -C examples/mold_udp/hdl test_mold_udp_8
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/mold-udp-24.xml" make -C examples/mold_udp/hdl test_mold_udp_24
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/mold-udp-32.xml" make -C examples/mold_udp/hdl test_mold_udp_32
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/mold-udp-512.xml" make -C examples/mold_udp/hdl test_mold_udp_512
         env:
           COCOTB_LOG_LEVEL: WARNING
 
       - name: Run UDP cocotbs
-        run: >
-          make -C examples/udp/hdl
-          test_udp_port_router_8
-          test_udp_classifier_64
+        run: |
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/udp-port-router-8.xml" make -C examples/udp/hdl test_udp_port_router_8
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/udp-classifier-64.xml" make -C examples/udp/hdl test_udp_classifier_64
         env:
           COCOTB_LOG_LEVEL: WARNING
+
+      - name: Upload cocotb results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cocotb-results
+          path: test-results/cocotb/*.xml
+          if-no-files-found: warn

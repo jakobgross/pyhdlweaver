@@ -24,4 +24,12 @@ jobs:
           python -m pip install -e ".[dev,hdl]"
 
       - name: Run pytest
-        run: pytest -q
+        run: pytest -q --junitxml=test-results/pytest/results.xml
+
+      - name: Upload pytest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: test-results/pytest/results.xml
+          if-no-files-found: warn
