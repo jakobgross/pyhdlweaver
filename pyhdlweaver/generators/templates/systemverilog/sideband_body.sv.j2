@@ -1,4 +1,5 @@
 localparam int PARSE_BEATS = {{ plan.parse_beats }};
+localparam logic [{{ beat_count_width - 1 }}:0] PARSE_FINAL_BEAT = {{ beat_count_width }}'(PARSE_BEATS - 1);
 localparam int PAYLOAD_START_BYTE = {{ payload_start_byte }};
 localparam int TAIL_BYTES = KEEP_WIDTH - PAYLOAD_START_BYTE;
 
@@ -225,7 +226,7 @@ always_ff @(posedge clk) begin
             end
           endcase
 
-          if (beat_count == PARSE_BEATS - 1) begin
+          if (beat_count == PARSE_FINAL_BEAT) begin
             // Header complete.
             route_tdest_reg <= route_tdest_next;
             if (s_axis_tlast && input_valid_bytes_comb < PAYLOAD_START_BYTE) begin

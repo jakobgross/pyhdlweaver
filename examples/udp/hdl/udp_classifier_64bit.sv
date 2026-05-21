@@ -50,6 +50,7 @@ module udp_classifier_64bit #(
 );
 
 localparam int PARSE_BEATS = 6;
+localparam logic [2:0] PARSE_FINAL_BEAT = 3'(PARSE_BEATS - 1);
 localparam int PAYLOAD_START_BYTE = 2;
 localparam int TAIL_BYTES = KEEP_WIDTH - PAYLOAD_START_BYTE;
 
@@ -203,7 +204,7 @@ end
 
 always_comb begin
   udp_checksum_comb = udp_checksum_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     udp_checksum_comb[15:8] = s_axis_tdata[7:0];
     udp_checksum_comb[7:0] = s_axis_tdata[15:8];
   end
@@ -302,7 +303,7 @@ always_ff @(posedge clk) begin
             end
           endcase
 
-          if (beat_count == PARSE_BEATS - 1) begin
+          if (beat_count == PARSE_FINAL_BEAT) begin
             // Header complete.
             route_tdest_reg <= route_tdest_next;
             if (s_axis_tlast && input_valid_bytes_comb < PAYLOAD_START_BYTE) begin

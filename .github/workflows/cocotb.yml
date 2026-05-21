@@ -75,6 +75,13 @@ jobs:
         env:
           COCOTB_LOG_LEVEL: WARNING
 
+      - name: Run all-in-one HFT cocotbs
+        run: |
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/all-in-one-hft-8.xml" make -C examples/all_in_one_hft/hdl test_8bit
+          COCOTB_RESULTS_FILE="$GITHUB_WORKSPACE/test-results/cocotb/all-in-one-hft-64.xml" make -C examples/all_in_one_hft/hdl test_64bit
+        env:
+          COCOTB_LOG_LEVEL: WARNING
+
       - name: Publish cocotb results
         if: ${{ !cancelled() }}
         uses: dorny/test-reporter@v3

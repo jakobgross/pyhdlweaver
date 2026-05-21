@@ -40,6 +40,7 @@ module eth_ip_forward_udp_512bit #(
 );
 
 localparam int PARSE_BEATS = 1;
+localparam logic [0:0] PARSE_FINAL_BEAT = 1'(PARSE_BEATS - 1);
 localparam int PAYLOAD_START_BYTE = 34;
 localparam int TAIL_BYTES = KEEP_WIDTH - PAYLOAD_START_BYTE;
 
@@ -197,7 +198,7 @@ end
 
 always_comb begin
   eth_ethertype_comb = eth_ethertype_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     eth_ethertype_comb[15:8] = s_axis_tdata[103:96];
     eth_ethertype_comb[7:0] = s_axis_tdata[111:104];
   end
@@ -205,14 +206,14 @@ end
 
 always_comb begin
   ip_version_ihl_comb = ip_version_ihl_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     ip_version_ihl_comb[7:0] = s_axis_tdata[119:112];
   end
 end
 
 always_comb begin
   ip_total_length_comb = ip_total_length_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     ip_total_length_comb[15:8] = s_axis_tdata[135:128];
     ip_total_length_comb[7:0] = s_axis_tdata[143:136];
   end
@@ -220,7 +221,7 @@ end
 
 always_comb begin
   ip_flags_frag_comb = ip_flags_frag_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     ip_flags_frag_comb[15:8] = s_axis_tdata[167:160];
     ip_flags_frag_comb[7:0] = s_axis_tdata[175:168];
   end
@@ -228,14 +229,14 @@ end
 
 always_comb begin
   ip_protocol_comb = ip_protocol_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     ip_protocol_comb[7:0] = s_axis_tdata[191:184];
   end
 end
 
 always_comb begin
   ip_src_comb = ip_src_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     ip_src_comb[31:24] = s_axis_tdata[215:208];
     ip_src_comb[23:16] = s_axis_tdata[223:216];
     ip_src_comb[15:8] = s_axis_tdata[231:224];
@@ -245,7 +246,7 @@ end
 
 always_comb begin
   ip_dst_comb = ip_dst_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     ip_dst_comb[31:24] = s_axis_tdata[247:240];
     ip_dst_comb[23:16] = s_axis_tdata[255:248];
     ip_dst_comb[15:8] = s_axis_tdata[263:256];
@@ -319,7 +320,7 @@ always_ff @(posedge clk) begin
             end
           endcase
 
-          if (beat_count == PARSE_BEATS - 1) begin
+          if (beat_count == PARSE_FINAL_BEAT) begin
             // Header complete.
             route_tdest_reg <= route_tdest_next;
             if (s_axis_tlast && input_valid_bytes_comb < PAYLOAD_START_BYTE) begin

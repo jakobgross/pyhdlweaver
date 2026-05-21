@@ -1,8 +1,16 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from pyhdlweaver.protocols.definitions.field import Field
 from pyhdlweaver.protocols.fixed_protocol import FixedProtocol
 from pyhdlweaver.protocols.length_prefixed_protocol import LengthPrefixedProtocol
+
+if TYPE_CHECKING:
+    from pyhdlweaver.protocols.length_prefixed_discriminated_sub_protocol import (
+        LengthPrefixedDiscriminatedSubProtocol,
+    )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -15,7 +23,7 @@ class MultiMessageProtocol(FixedProtocol):
     """
 
     message_count_field: str
-    sub_protocol: LengthPrefixedProtocol
+    sub_protocol: LengthPrefixedProtocol | LengthPrefixedDiscriminatedSubProtocol
 
     @property
     def protocol_kind(self) -> str:

@@ -40,6 +40,7 @@ module eth_ip_forward_udp_8bit #(
 );
 
 localparam int PARSE_BEATS = 34;
+localparam logic [5:0] PARSE_FINAL_BEAT = 6'(PARSE_BEATS - 1);
 localparam int PAYLOAD_START_BYTE = 1;
 localparam int TAIL_BYTES = KEEP_WIDTH - PAYLOAD_START_BYTE;
 
@@ -191,7 +192,7 @@ end
 
 always_comb begin
   ip_dst_comb = ip_dst_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     ip_dst_comb[7:0] = s_axis_tdata[7:0];
   end
 end
@@ -292,7 +293,7 @@ always_ff @(posedge clk) begin
             end
           endcase
 
-          if (beat_count == PARSE_BEATS - 1) begin
+          if (beat_count == PARSE_FINAL_BEAT) begin
             // Header complete.
             route_tdest_reg <= route_tdest_next;
             if (s_axis_tlast && input_valid_bytes_comb < PAYLOAD_START_BYTE) begin

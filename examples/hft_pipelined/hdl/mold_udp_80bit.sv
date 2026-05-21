@@ -37,9 +37,11 @@ module mold_udp_80bit #(
 );
 
 localparam int PARSE_BEATS = 2;
+localparam logic [1:0] PARSE_FINAL_BEAT = 2'(PARSE_BEATS - 1);
 localparam int OUTER_TOTAL_BYTES = 20;
 localparam int OUTER_TAIL_START = 10;
 localparam int SUB_HEADER_BYTES = 2;
+localparam logic [1:0] SUB_HEADER_LAST_OFFSET = 2'(SUB_HEADER_BYTES - 1);
 
 typedef enum logic [1:0] {
   // Capture outer header.
@@ -79,6 +81,10 @@ logic scratch_load_fire;
 logic body_fire;
 logic drain_fire;
 logic body_needs_input;
+logic consume_from_input_comb;
+logic no_more_bytes_after_comb;
+logic is_last_beat_comb;
+logic is_last_byte_comb;
 int unsigned input_valid_bytes_comb;
 int unsigned outer_tail_count_comb;
 
@@ -96,8 +102,27 @@ assign s_axis_tready = (state == ST_PARSE || state == ST_DRAIN) ? 1'b1 :
                        (state == ST_MSG_HDR) ? (scratch_count_reg == '0) :
                        (state == ST_MSG_BODY) ? ((scratch_count_reg == '0) || body_needs_input) : 1'b0;
 
-// Scratchpad lane 0.
-assign scratch_byte_comb = scratch_data_reg[7:0];
+// Byte 0 of scratchpad, muxed from input when scratch is empty.
+always_comb begin
+  if (state == ST_MSG_HDR && scratch_count_reg == '0 && s_axis_tvalid)
+    scratch_byte_comb = s_axis_tdata[7:0];
+  else
+    scratch_byte_comb = scratch_data_reg[7:0];
+end
+
+assign consume_from_input_comb = (state == ST_MSG_HDR) &&
+                                 (scratch_count_reg == '0) &&
+                                 s_axis_tvalid;
+
+always_comb begin
+  if (scratch_count_reg == '0)
+    no_more_bytes_after_comb = (input_valid_bytes_comb <= 1);
+  else
+    no_more_bytes_after_comb = (scratch_count_reg == 1);
+end
+
+assign is_last_beat_comb = consume_from_input_comb ? s_axis_tlast : scratch_last_reg;
+assign is_last_byte_comb = no_more_bytes_after_comb && is_last_beat_comb;
 
 // Count valid bytes.
 function automatic int unsigned keep_count(input logic [KEEP_WIDTH-1:0] keep);
@@ -153,7 +178,7 @@ assign body_truncated_comb = (state == ST_MSG_BODY) &&
 
 // Forward sub-message payload bytes from the scratchpad.
 assign m_axis_tdata  = scratch_data_reg[DATA_WIDTH-1:0];
-assign m_axis_tkeep  = keep_for_count(body_out_bytes_comb);
+assign m_axis_tkeep  = keep_for_count(int'(body_out_bytes_comb));
 assign m_axis_tlast  = (state == ST_MSG_BODY) &&
                        (scratch_count_reg != '0) &&
                        ((16'(msg_bytes_remaining_reg) <= body_out_bytes_comb) ||
@@ -176,7 +201,7 @@ assign mold_message_fields_fresh = mold_message_fields_fresh_reg;
 
 always_comb begin
   seq_num_comb = seq_num_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     seq_num_comb[63:56] = s_axis_tdata[7:0];
     seq_num_comb[55:48] = s_axis_tdata[15:8];
     seq_num_comb[47:40] = s_axis_tdata[23:16];
@@ -190,7 +215,7 @@ end
 
 always_comb begin
   msg_count_comb = msg_count_reg;
-  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+  if (parse_fire && beat_count == PARSE_FINAL_BEAT) begin
     msg_count_comb[15:8] = s_axis_tdata[71:64];
     msg_count_comb[7:0] = s_axis_tdata[79:72];
   end
@@ -265,7 +290,7 @@ always_ff @(posedge clk) begin
             default: ;
           endcase
 
-          if (beat_count == PARSE_BEATS - 1) begin
+          if (beat_count == PARSE_FINAL_BEAT) begin
             beat_count <= '0;
             if (input_valid_bytes_comb < OUTER_TAIL_START) begin
               // Short outer header.
@@ -308,22 +333,24 @@ always_ff @(posedge clk) begin
       end
 
       ST_MSG_HDR: begin
-        if (scratch_count_reg == '0) begin
-          // Load input bytes.
-          if (scratch_load_fire) begin
+        if (scratch_count_reg == '0 && s_axis_tvalid && s_axis_tlast && input_valid_bytes_comb == 0) begin
+          // Zero-byte terminator.
+          malformed_count <= malformed_count + 1'b1;
+          sticky_tuser_reg <= 1'b1;
+          state <= ST_PARSE;
+        end else if (scratch_count_reg != '0 || (s_axis_tvalid && input_valid_bytes_comb > 0)) begin
+          // Consume sub-header byte.
+          if (consume_from_input_comb) begin
             if (s_axis_tuser)
               sticky_tuser_reg <= 1'b1;
-            scratch_data_reg <= s_axis_tdata;
-            scratch_count_reg <= 5'(input_valid_bytes_comb);
+            scratch_data_reg <= 160'(s_axis_tdata) >> 8;
+            scratch_count_reg <= 5'(input_valid_bytes_comb - 1);
             scratch_last_reg <= s_axis_tlast;
-            if (s_axis_tlast && input_valid_bytes_comb == 0) begin
-              malformed_count <= malformed_count + 1'b1;
-              sticky_tuser_reg <= 1'b1;
-              state <= ST_PARSE;
-            end
+          end else begin
+            scratch_data_reg <= scratch_data_reg >> 8;
+            scratch_count_reg <= scratch_count_reg - 1'b1;
           end
-        end else begin
-          // Consume sub-header byte.
+
           case (sub_header_offset_reg)
               0: begin
                 mold_message_msg_len_reg[15:8] <= scratch_byte_comb[7:0];
@@ -334,10 +361,7 @@ always_ff @(posedge clk) begin
             default: ;
           endcase
 
-          scratch_data_reg <= scratch_data_reg >> 8;
-          scratch_count_reg <= scratch_count_reg - 1'b1;
-
-          if (sub_header_offset_reg == SUB_HEADER_BYTES - 1) begin
+          if (sub_header_offset_reg == SUB_HEADER_LAST_OFFSET) begin
             // Sub-header complete.
             sub_header_offset_reg <= '0;
             mold_message_fields_fresh_reg <= 1'b1;
@@ -346,7 +370,7 @@ always_ff @(posedge clk) begin
               malformed_count <= malformed_count + 1'b1;
               sticky_tuser_reg <= 1'b1;
               scratch_count_reg <= '0;
-              state <= scratch_last_reg ? ST_PARSE : ST_DRAIN;
+              state <= is_last_beat_comb ? ST_PARSE : ST_DRAIN;
             end else begin
               // Begin payload output.
               msg_bytes_remaining_reg <= mold_message_msg_len_comb;
@@ -354,7 +378,7 @@ always_ff @(posedge clk) begin
             end
           end else begin
             sub_header_offset_reg <= sub_header_offset_reg + 1'b1;
-            if (scratch_count_reg == 1 && scratch_last_reg) begin
+            if (is_last_byte_comb) begin
               // Short sub-header.
               malformed_count <= malformed_count + 1'b1;
               sticky_tuser_reg <= 1'b1;
@@ -373,11 +397,11 @@ always_ff @(posedge clk) begin
             if (s_axis_tuser)
               sticky_tuser_reg <= 1'b1;
             if (scratch_count_reg == '0) begin
-              scratch_data_reg <= s_axis_tdata;
+              scratch_data_reg <= 160'(s_axis_tdata);
             end else begin
               for (int i = 0; i < KEEP_WIDTH; i++) begin
                 if (i < input_valid_bytes_comb)
-                  scratch_data_reg[(scratch_count_reg + i)*8 +: 8] <= s_axis_tdata[i*8 +: 8];
+                  scratch_data_reg[(int'(scratch_count_reg) + i)*8 +: 8] <= s_axis_tdata[i*8 +: 8];
               end
             end
             scratch_count_reg <= scratch_count_reg + 5'(input_valid_bytes_comb);

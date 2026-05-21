@@ -96,6 +96,7 @@ module itch_parser_64bit #(
 );
 
 localparam int PARSE_BEATS = 7;
+localparam logic [2:0] PARSE_FINAL_BEAT = 3'(PARSE_BEATS - 1);
 
 typedef enum logic [0:0] {
   // Capture variant fields.
@@ -704,7 +705,7 @@ always_ff @(posedge clk) begin
               malformed_count <= malformed_count + 32'd1;
             end
             beat_count <= '0;
-          end else if (beat_count == PARSE_BEATS - 1) begin
+          end else if (beat_count == PARSE_FINAL_BEAT) begin
             // Drain over-long frame.
             if (!s_axis_tuser)
               malformed_count <= malformed_count + 32'd1;

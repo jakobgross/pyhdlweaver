@@ -66,6 +66,12 @@ jobs:
           test_hft_pipelined
           PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/hft-pipelined.xml"
 
+      - name: Run all-in-one HFT C ctypes tests
+        run: >
+          make -C examples/all_in_one_hft/c
+          test_all_in_one_hft
+          PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/all-in-one-hft.xml"
+
       - name: Publish C ctypes results
         if: ${{ !cancelled() }}
         uses: dorny/test-reporter@v3

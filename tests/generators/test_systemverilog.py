@@ -6,7 +6,12 @@ from examples.itch.itch import ITCH_PARSER
 from examples.itch.generate_sv import generate_8bit as generate_itch_8bit, generate_32bit as generate_itch_32bit
 from pyhdlweaver.actions import DropOnMismatch, DropOnRegisterMismatch, RouteByRegister, RouteByValue, RouteToAll
 from pyhdlweaver.generators import GeneratedFile, SystemVerilogGenerator
-from pyhdlweaver.protocols import DiscriminatedProtocol, SidebandProtocol
+from pyhdlweaver.protocols import (
+    DiscriminatedProtocol,
+    LengthPrefixedDiscriminatedSubProtocol,
+    MultiMessageProtocol,
+    SidebandProtocol,
+)
 from pyhdlweaver.protocols.definitions import Field
 from pyhdlweaver.stream.axi_stream import STREAM_8, STREAM_32, AxisStream
 
@@ -76,7 +81,7 @@ def test_systemverilog_generator_uses_comb_bypass_for_final_beat_action_field():
 
     assert "logic [7:0] kind_comb;" in generated.content
     assert "kind_comb = kind_reg;" in generated.content
-    assert "parse_fire && beat_count == PARSE_BEATS - 1" in generated.content
+    assert "parse_fire && beat_count == PARSE_FINAL_BEAT" in generated.content
     assert "kind_comb[7:0] = s_axis_tdata[7:0];" in generated.content
     assert "drop_next = drop_next | (kind_comb != 8'hab);" in generated.content
     assert "kind_reg" not in generated.content.split("drop_next")[1].split(";")[0]
@@ -272,6 +277,45 @@ def test_discriminated_generator_branches_only_same_name_different_locations():
     assert "8'h1: begin" in generated.content
     assert "value_reg[7:0] <= s_axis_tdata[7:0];" in generated.content
     assert "8'h2: begin" in generated.content
+
+
+def test_multi_message_discriminated_branches_only_same_name_different_locations():
+    count_field = Field("count", offset=0, width=8)
+    length_field = Field("length", offset=0, width=8)
+    disc_field = Field("kind", offset=0, width=8)
+    value_at_1 = Field("value", offset=1, width=8)
+    value_at_2 = Field("value", offset=2, width=8)
+    unique_at_2 = Field("unique_a", offset=2, width=8)
+    unique_at_3 = Field("unique_b", offset=3, width=8)
+    disc_protocol = DiscriminatedProtocol(
+        name="sub",
+        discriminator=disc_field,
+        fields=[disc_field],
+        variants={1: [value_at_1, unique_at_2], 2: [value_at_2, unique_at_3]},
+        variant_length={1: 3, 2: 4},
+    )
+    protocol = MultiMessageProtocol(
+        name="multi_sub",
+        fields=[count_field],
+        total_length=1,
+        message_count_field="count",
+        sub_protocol=LengthPrefixedDiscriminatedSubProtocol(
+            name="entry",
+            length_field=length_field,
+            discriminated=disc_protocol,
+        ),
+    )
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_8)
+    content = generated.content
+    idx = content.index("            2: begin")
+    end_idx = content.index("            3: begin", idx)
+    offset_2_block = content[idx:end_idx]
+
+    assert "unique_a_reg[7:0] <= scratch_byte_comb[7:0];" in offset_2_block
+    assert "case (kind_reg)" in offset_2_block
+    assert "8'h2: begin" in offset_2_block
+    assert "value_reg[7:0] <= scratch_byte_comb[7:0];" in offset_2_block
 
 
 def test_discriminated_generator_uses_current_discriminator_for_wide_branch():
