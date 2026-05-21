@@ -22,9 +22,12 @@ def test_eth_ip_systemverilog_example_returns_generated_file():
     assert "localparam int PARSE_BEATS = 9;" in generated.content
     assert "eth_ethertype_reg[15:8] <= s_axis_tdata[7:0];" in generated.content
     assert "eth_ethertype_reg[7:0] <= s_axis_tdata[15:8];" in generated.content
-    assert "assign m_axis_tuser = sticky_tuser | parser_drop |" in generated.content
-    assert "((state == ST_TAIL) ? tail_tuser_reg : s_axis_tuser);" in generated.content
+    assert "assign m_axis_tuser  = sticky_tuser | parser_drop |" in generated.content
+    assert "tail_tuser_reg" in generated.content
     assert "ST_DROP" in generated.content
+    assert "ST_REALIGN" in generated.content
+    assert "tail_tkeep_reg <= keep_for_count(parse_tail_bytes_comb);" in generated.content
+    assert "(state == ST_FORWARD)                    ? s_axis_tkeep :" in generated.content
 
 
 def test_eth_ip_forward_udp_8bit_systemverilog_example_returns_generated_file():
@@ -179,7 +182,7 @@ def test_systemverilog_generator_rejects_route_to_all_for_tdest():
         SystemVerilogGenerator().generate(protocol, STREAM_32)
 
 
-# ── DiscriminatedProtocol / ITCH tests ──────────────────────────────────────
+# DiscriminatedProtocol and ITCH tests.
 
 def test_itch_discriminated_protocol_has_correct_variant_count():
     assert len(ITCH_PARSER.variants) == 22
@@ -228,17 +231,14 @@ def test_itch_generated_sv_has_variant_field_ports():
     # Replace fields (U)
     assert "output logic [63:0] original_order_reference_number," in generated.content
     assert "output logic [63:0] new_order_reference_number," in generated.content
-    # NOII fields (I) — the longest message, determines PARSE_BEATS
+    # NOII fields set PARSE_BEATS.
     assert "output logic [63:0] paired_shares," in generated.content
     assert "output logic [7:0] price_variation_indicator," in generated.content
 
 
 def test_itch_generated_sv_captures_overlapping_fields_on_same_beat():
     # On an 8-bit bus, beat 11 is the first byte of the variant payload.
-    # 'S' System Event has event_code there; order-management variants have
-    # order_reference_number[63:56] at the same offset.  With variant-conditional
-    # capture, both registers must appear inside the beat-11 block, each in its
-    # own case branch keyed by the message_type discriminator.
+    # Variant fields at the same offset get separate branches.
     generated = generate_itch_8bit()
 
     assert "11: begin" in generated.content

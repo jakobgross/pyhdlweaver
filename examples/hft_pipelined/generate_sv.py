@@ -8,7 +8,7 @@ from examples.itch.itch import ITCH_PARSER
 from examples.mold_udp.mold_udp import MOLD_UDP_PARSER
 from examples.udp.udp import UDP_PORT_ROUTER
 from pyhdlweaver.generators import SystemVerilogGenerator
-from pyhdlweaver.stream.axi_stream import STREAM_8, STREAM_64
+from pyhdlweaver.stream.axi_stream import STREAM_8, STREAM_64, STREAM_80
 
 HDL_DIR = Path(__file__).resolve().parent / "hdl"
 
@@ -37,11 +37,24 @@ def generate_itch_parser_64bit():
     return SystemVerilogGenerator().generate(ITCH_PARSER, STREAM_64, module_name="itch_parser_64bit")
 
 
+def generate_udp_port_router_80bit():
+    return SystemVerilogGenerator().generate(UDP_PORT_ROUTER, STREAM_80, module_name="udp_port_router_80bit")
+
+
+def generate_mold_udp_80bit():
+    return SystemVerilogGenerator().generate(MOLD_UDP_PARSER, STREAM_80, module_name="mold_udp_80bit")
+
+
+def generate_itch_parser_80bit():
+    return SystemVerilogGenerator().generate(ITCH_PARSER, STREAM_80, module_name="itch_parser_80bit")
+
+
 def main():
     HDL_DIR.mkdir(parents=True, exist_ok=True)
     generators = (
         generate_udp_port_router_8bit, generate_mold_udp_8bit, generate_itch_parser_8bit,
         generate_udp_port_router_64bit, generate_mold_udp_64bit, generate_itch_parser_64bit,
+        generate_udp_port_router_80bit, generate_mold_udp_80bit, generate_itch_parser_80bit,
     )
     for fn in generators:
         g = fn()

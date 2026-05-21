@@ -42,13 +42,13 @@ localparam int OUTER_TAIL_START = 4;
 localparam int SUB_HEADER_BYTES = 2;
 
 typedef enum logic [1:0] {
-  // Capture the fixed outer header fields.
+  // Capture outer header.
   ST_PARSE,
-  // Capture the per-message header fields.
+  // Capture sub-header.
   ST_MSG_HDR,
-  // Emit one sub-message payload frame.
+  // Emit sub-message payload.
   ST_MSG_BODY,
-  // Consume the rest of a malformed input frame.
+  // Drain malformed frame.
   ST_DRAIN
 } state_t;
 
@@ -57,8 +57,8 @@ logic [2:0] beat_count;
 logic [1:0] sub_header_offset_reg;
 logic [15:0] msg_remaining_reg;
 logic [15:0] msg_bytes_remaining_reg;
-logic [DATA_WIDTH-1:0] scratch_data_reg;
-logic [2:0] scratch_count_reg;
+logic [(2*DATA_WIDTH)-1:0] scratch_data_reg;
+logic [3:0] scratch_count_reg;
 logic scratch_last_reg;
 logic sticky_tuser_reg;
 logic [7:0] scratch_byte_comb;
@@ -78,22 +78,28 @@ logic parse_fire;
 logic scratch_load_fire;
 logic body_fire;
 logic drain_fire;
+logic body_needs_input;
 int unsigned input_valid_bytes_comb;
 int unsigned outer_tail_count_comb;
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
-assign scratch_load_fire = (state == ST_MSG_HDR || state == ST_MSG_BODY) &&
-                           (scratch_count_reg == '0) &&
+assign body_needs_input = (state == ST_MSG_BODY) &&
+                          (scratch_count_reg < 4'(KEEP_WIDTH)) &&
+                          (16'(msg_bytes_remaining_reg) > 16'(scratch_count_reg)) &&
+                          !scratch_last_reg;
+assign scratch_load_fire = (((state == ST_MSG_HDR) && (scratch_count_reg == '0)) ||
+                            ((state == ST_MSG_BODY) && ((scratch_count_reg == '0) || body_needs_input))) &&
                            s_axis_tvalid && s_axis_tready;
 assign body_fire = (state == ST_MSG_BODY) && m_axis_tvalid && m_axis_tready;
 assign drain_fire = (state == ST_DRAIN) && s_axis_tvalid && s_axis_tready;
 assign s_axis_tready = (state == ST_PARSE || state == ST_DRAIN) ? 1'b1 :
-                       (scratch_count_reg == '0);
+                       (state == ST_MSG_HDR) ? (scratch_count_reg == '0) :
+                       (state == ST_MSG_BODY) ? ((scratch_count_reg == '0) || body_needs_input) : 1'b0;
 
-// The scratchpad is consumed from byte lane 0 upward.
+// Scratchpad lane 0.
 assign scratch_byte_comb = scratch_data_reg[7:0];
 
-// Count valid bytes in the final input beat.
+// Count valid bytes.
 function automatic int unsigned keep_count(input logic [KEEP_WIDTH-1:0] keep);
   int unsigned count;
   begin
@@ -106,7 +112,7 @@ function automatic int unsigned keep_count(input logic [KEEP_WIDTH-1:0] keep);
   end
 endfunction
 
-// Build an output keep mask for the leading payload bytes.
+// Dense keep mask.
 function automatic logic [KEEP_WIDTH-1:0] keep_for_count(input int unsigned count);
   logic [KEEP_WIDTH-1:0] keep;
   begin
@@ -119,21 +125,24 @@ function automatic logic [KEEP_WIDTH-1:0] keep_for_count(input int unsigned coun
   end
 endfunction
 
-// Determine how many bytes are usable on the current input beat.
+// Count usable input bytes.
 always_comb begin
   input_valid_bytes_comb = s_axis_tlast ? keep_count(s_axis_tkeep) : KEEP_WIDTH;
   outer_tail_count_comb = (input_valid_bytes_comb > OUTER_TAIL_START) ?
                           (input_valid_bytes_comb - OUTER_TAIL_START) : 0;
 end
 
-// Emit at most one scratchpad worth of payload per output beat.
+// Select output byte count.
 always_comb begin
   body_out_bytes_comb = '0;
   if (state == ST_MSG_BODY && scratch_count_reg != '0) begin
-    if (16'(msg_bytes_remaining_reg) <= 16'(scratch_count_reg))
+    if (16'(msg_bytes_remaining_reg) <= 16'(scratch_count_reg) &&
+        16'(msg_bytes_remaining_reg) <= 16'(KEEP_WIDTH))
       body_out_bytes_comb = 16'(msg_bytes_remaining_reg);
-    else
+    else if (scratch_count_reg < 4'(KEEP_WIDTH))
       body_out_bytes_comb = 16'(scratch_count_reg);
+    else
+      body_out_bytes_comb = 16'(KEEP_WIDTH);
   end
 end
 
@@ -143,19 +152,20 @@ assign body_truncated_comb = (state == ST_MSG_BODY) &&
                              (16'(msg_bytes_remaining_reg) > 16'(scratch_count_reg));
 
 // Forward sub-message payload bytes from the scratchpad.
-assign m_axis_tdata  = scratch_data_reg;
+assign m_axis_tdata  = scratch_data_reg[DATA_WIDTH-1:0];
 assign m_axis_tkeep  = keep_for_count(body_out_bytes_comb);
 assign m_axis_tlast  = (state == ST_MSG_BODY) &&
                        (scratch_count_reg != '0) &&
-                       ((16'(msg_bytes_remaining_reg) <= 16'(scratch_count_reg)) ||
+                       ((16'(msg_bytes_remaining_reg) <= body_out_bytes_comb) ||
                         body_truncated_comb);
 assign m_axis_tuser  = sticky_tuser_reg | body_truncated_comb;
 assign m_axis_tdest  = '0;
 assign m_axis_tvalid = (state == ST_MSG_BODY) &&
                        (scratch_count_reg != '0) &&
-                       (msg_bytes_remaining_reg != '0);
+                       (msg_bytes_remaining_reg != '0) &&
+                       !body_needs_input;
 
-// Expose outer and sub-message fields as output ports.
+// Expose parsed fields.
 assign session_id = session_id_reg;
 assign seq_num = seq_num_reg;
 assign msg_count = msg_count_reg;
@@ -214,7 +224,7 @@ always_ff @(posedge clk) begin
 
     case (state)
       ST_PARSE: begin
-        // Count outer-header beats and capture configured fields.
+        // Capture outer header fields.
         if (parse_fire) begin
           if (beat_count == '0)
             sticky_tuser_reg <= s_axis_tuser;
@@ -258,7 +268,7 @@ always_ff @(posedge clk) begin
           if (beat_count == PARSE_BEATS - 1) begin
             beat_count <= '0;
             if (input_valid_bytes_comb < OUTER_TAIL_START) begin
-              // Final header beat did not contain the whole outer header.
+              // Short outer header.
               malformed_count <= malformed_count + 1'b1;
               sticky_tuser_reg <= 1'b1;
               scratch_data_reg <= '0;
@@ -274,19 +284,19 @@ always_ff @(posedge clk) begin
                 if (i < outer_tail_count_comb)
                   scratch_data_reg[i*8 +: 8] <= s_axis_tdata[(OUTER_TAIL_START + i)*8 +: 8];
               end
-              scratch_count_reg <= 3'(outer_tail_count_comb);
+              scratch_count_reg <= 4'(outer_tail_count_comb);
               scratch_last_reg <= s_axis_tlast;
 
               if (msg_count_comb == '0) begin
-                // No sub-messages are expected.
+                // No sub-messages expected.
                 state <= s_axis_tlast ? ST_PARSE : ST_DRAIN;
               end else begin
-                // Outer header is complete. Start the first sub-message.
+                // Start first sub-message.
                 state <= ST_MSG_HDR;
               end
             end
           end else if (s_axis_tlast) begin
-            // Short frame ended before the outer header was complete.
+            // Short outer header.
             malformed_count <= malformed_count + 1'b1;
             sticky_tuser_reg <= 1'b1;
             beat_count <= '0;
@@ -299,12 +309,12 @@ always_ff @(posedge clk) begin
 
       ST_MSG_HDR: begin
         if (scratch_count_reg == '0) begin
-          // Load another input beat into the scratchpad.
+          // Load input bytes.
           if (scratch_load_fire) begin
             if (s_axis_tuser)
               sticky_tuser_reg <= 1'b1;
             scratch_data_reg <= s_axis_tdata;
-            scratch_count_reg <= 3'(input_valid_bytes_comb);
+            scratch_count_reg <= 4'(input_valid_bytes_comb);
             scratch_last_reg <= s_axis_tlast;
             if (s_axis_tlast && input_valid_bytes_comb == 0) begin
               malformed_count <= malformed_count + 1'b1;
@@ -313,7 +323,7 @@ always_ff @(posedge clk) begin
             end
           end
         end else begin
-          // Consume one sub-header byte from the scratchpad.
+          // Consume sub-header byte.
           case (sub_header_offset_reg)
               0: begin
                 mold_message_msg_len_reg[15:8] <= scratch_byte_comb[7:0];
@@ -328,24 +338,24 @@ always_ff @(posedge clk) begin
           scratch_count_reg <= scratch_count_reg - 1'b1;
 
           if (sub_header_offset_reg == SUB_HEADER_BYTES - 1) begin
-            // Sub-message header is complete.
+            // Sub-header complete.
             sub_header_offset_reg <= '0;
             mold_message_fields_fresh_reg <= 1'b1;
             if (mold_message_msg_len_comb == '0) begin
-              // Zero-length sub-messages are malformed.
+              // Reject zero length.
               malformed_count <= malformed_count + 1'b1;
               sticky_tuser_reg <= 1'b1;
               scratch_count_reg <= '0;
               state <= scratch_last_reg ? ST_PARSE : ST_DRAIN;
             end else begin
-              // Header passed validation. Begin emitting payload bytes.
+              // Begin payload output.
               msg_bytes_remaining_reg <= mold_message_msg_len_comb;
               state <= ST_MSG_BODY;
             end
           end else begin
             sub_header_offset_reg <= sub_header_offset_reg + 1'b1;
             if (scratch_count_reg == 1 && scratch_last_reg) begin
-              // Frame ended in the middle of a sub-message header.
+              // Short sub-header.
               malformed_count <= malformed_count + 1'b1;
               sticky_tuser_reg <= 1'b1;
               sub_header_offset_reg <= '0;
@@ -357,13 +367,20 @@ always_ff @(posedge clk) begin
       end
 
       ST_MSG_BODY: begin
-        if (scratch_count_reg == '0) begin
-          // Load payload bytes when the scratchpad is empty.
+        if (scratch_count_reg == '0 || body_needs_input) begin
+          // Load or append payload bytes.
           if (scratch_load_fire) begin
             if (s_axis_tuser)
               sticky_tuser_reg <= 1'b1;
-            scratch_data_reg <= s_axis_tdata;
-            scratch_count_reg <= 3'(input_valid_bytes_comb);
+            if (scratch_count_reg == '0) begin
+              scratch_data_reg <= s_axis_tdata;
+            end else begin
+              for (int i = 0; i < KEEP_WIDTH; i++) begin
+                if (i < input_valid_bytes_comb)
+                  scratch_data_reg[(scratch_count_reg + i)*8 +: 8] <= s_axis_tdata[i*8 +: 8];
+              end
+            end
+            scratch_count_reg <= scratch_count_reg + 4'(input_valid_bytes_comb);
             scratch_last_reg <= s_axis_tlast;
             if (s_axis_tlast && input_valid_bytes_comb == 0) begin
               malformed_count <= malformed_count + 1'b1;
@@ -374,12 +391,12 @@ always_ff @(posedge clk) begin
             end
           end
         end else if (body_fire) begin
-          // Output payload bytes and advance the scratchpad cursor.
+          // Advance payload cursor.
           scratch_data_reg <= scratch_data_reg >> (body_out_bytes_comb * 8);
-          scratch_count_reg <= scratch_count_reg - 3'(body_out_bytes_comb);
+          scratch_count_reg <= scratch_count_reg - 4'(body_out_bytes_comb);
 
           if (body_truncated_comb) begin
-            // Frame ended before the declared payload length was satisfied.
+            // Short payload.
             malformed_count <= malformed_count + 1'b1;
             sticky_tuser_reg <= 1'b1;
             msg_bytes_remaining_reg <= '0;
@@ -387,12 +404,12 @@ always_ff @(posedge clk) begin
             scratch_count_reg <= '0;
             state <= ST_PARSE;
           end else if (16'(msg_bytes_remaining_reg) <= body_out_bytes_comb) begin
-            // This beat completed the current sub-message payload.
+            // Sub-message payload complete.
             msg_bytes_remaining_reg <= '0;
             if (msg_remaining_reg <= 1) begin
               msg_remaining_reg <= '0;
-              if (scratch_count_reg > 3'(body_out_bytes_comb)) begin
-                // Extra bytes followed the declared final sub-message.
+              if (scratch_count_reg > 4'(body_out_bytes_comb)) begin
+                // Extra bytes after final message.
                 malformed_count <= malformed_count + 1'b1;
                 sticky_tuser_reg <= 1'b1;
                 scratch_count_reg <= '0;
@@ -400,21 +417,21 @@ always_ff @(posedge clk) begin
               end else if (scratch_last_reg) begin
                 state <= ST_PARSE;
               end else begin
-                // Declared messages ended before the input frame ended.
+                // Extra input frame bytes.
                 malformed_count <= malformed_count + 1'b1;
                 sticky_tuser_reg <= 1'b1;
                 state <= ST_DRAIN;
               end
             end else begin
-              if (scratch_count_reg == 3'(body_out_bytes_comb) && scratch_last_reg) begin
-                // Frame ended before all declared sub-messages arrived.
+              if (scratch_count_reg == 4'(body_out_bytes_comb) && scratch_last_reg) begin
+                // Missing declared messages.
                 malformed_count <= malformed_count + 1'b1;
                 sticky_tuser_reg <= 1'b1;
                 msg_remaining_reg <= '0;
                 scratch_count_reg <= '0;
                 state <= ST_PARSE;
               end else begin
-                // More sub-messages remain in this input frame.
+                // More sub-messages remain.
                 msg_remaining_reg <= msg_remaining_reg - 1'b1;
                 state <= ST_MSG_HDR;
               end
@@ -426,7 +443,7 @@ always_ff @(posedge clk) begin
       end
 
       ST_DRAIN: begin
-        // Suppress bytes until the malformed input frame ends.
+        // Drain malformed frame.
         if (drain_fire) begin
           if (s_axis_tuser)
             sticky_tuser_reg <= 1'b1;
@@ -443,7 +460,7 @@ always_ff @(posedge clk) begin
       end
 
       default: begin
-        // Recover to the outer-header parser.
+        // Recover parser state.
         state <= ST_PARSE;
       end
     endcase

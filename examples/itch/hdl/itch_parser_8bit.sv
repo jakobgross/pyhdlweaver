@@ -16,14 +16,7 @@ module itch_parser_8bit #(
   input  logic s_axis_tvalid,
   output logic s_axis_tready,
 
-  output logic [DATA_WIDTH-1:0] m_axis_tdata,
-  output logic [KEEP_WIDTH-1:0] m_axis_tkeep,
-  output logic m_axis_tlast,
-  output logic m_axis_tuser,
-  output logic [TDEST_WIDTH-1:0] m_axis_tdest,
-  output logic m_axis_tvalid,
-  input  logic m_axis_tready,
-
+  output logic [31:0] malformed_count,
   // parsed fields
   output logic [7:0] message_type,
   output logic [15:0] stock_locate,
@@ -105,15 +98,20 @@ module itch_parser_8bit #(
 localparam int PARSE_BEATS = 50;
 
 typedef enum logic [0:0] {
-  // Capture all variant fields beat by beat.
+  // Capture variant fields.
   ST_PARSE,
-  // Consume the tail of an over-long (malformed) input frame.
+  // Drain malformed frame.
   ST_DRAIN
 } state_t;
 
 state_t state;
 logic [5:0] beat_count;
 logic fields_valid_reg;
+logic [7:0] discriminator_value_comb;
+logic [5:0] frame_bytes_comb;
+logic [5:0] expected_length_comb;
+logic variant_known_comb;
+int unsigned input_valid_bytes_comb;
 
 logic [7:0] message_type_reg;
 logic [15:0] stock_locate_reg;
@@ -194,18 +192,9 @@ logic drain_fire;
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign drain_fire = (state == ST_DRAIN) && s_axis_tvalid && s_axis_tready;
 
-// Hold input during drain; otherwise follow downstream readiness.
-assign s_axis_tready = (state == ST_DRAIN) ? 1'b1 : m_axis_tready;
+assign s_axis_tready = 1'b1;
 
-// Pass the input stream through during parsing; suppress during drain.
-assign m_axis_tdata  = s_axis_tdata;
-assign m_axis_tkeep  = s_axis_tkeep;
-assign m_axis_tlast  = s_axis_tlast;
-assign m_axis_tuser  = s_axis_tuser;
-assign m_axis_tdest  = '0;
-assign m_axis_tvalid = (state == ST_PARSE) && s_axis_tvalid;
-
-// Expose all parsed fields as output ports.
+// Expose parsed fields.
 assign message_type = message_type_reg;
 assign stock_locate = stock_locate_reg;
 assign tracking_number = tracking_number_reg;
@@ -281,12 +270,61 @@ assign price_variation_indicator = price_variation_indicator_reg;
 assign interest_flag = interest_flag_reg;
 assign fields_valid = fields_valid_reg;
 
+assign discriminator_value_comb =
+  (beat_count == 0) ? s_axis_tdata[7:0] : message_type_reg;
+
+function automatic int unsigned keep_count(input logic [KEEP_WIDTH-1:0] keep);
+  int unsigned count;
+  begin
+    count = 0;
+    for (int i = 0; i < KEEP_WIDTH; i++) begin
+      if (keep[i])
+        count++;
+    end
+    return count;
+  end
+endfunction
+
+always_comb begin
+  input_valid_bytes_comb = s_axis_tlast ? keep_count(s_axis_tkeep) : KEEP_WIDTH;
+  frame_bytes_comb = 6'(beat_count * KEEP_WIDTH + input_valid_bytes_comb);
+  expected_length_comb = '0;
+  variant_known_comb = 1'b1;
+
+  case (discriminator_value_comb)
+    8'h41: expected_length_comb = 6'(36);
+    8'h42: expected_length_comb = 6'(19);
+    8'h43: expected_length_comb = 6'(36);
+    8'h44: expected_length_comb = 6'(19);
+    8'h45: expected_length_comb = 6'(31);
+    8'h46: expected_length_comb = 6'(40);
+    8'h48: expected_length_comb = 6'(25);
+    8'h49: expected_length_comb = 6'(50);
+    8'h4a: expected_length_comb = 6'(35);
+    8'h4b: expected_length_comb = 6'(28);
+    8'h4c: expected_length_comb = 6'(26);
+    8'h4e: expected_length_comb = 6'(20);
+    8'h50: expected_length_comb = 6'(44);
+    8'h51: expected_length_comb = 6'(40);
+    8'h52: expected_length_comb = 6'(39);
+    8'h53: expected_length_comb = 6'(12);
+    8'h55: expected_length_comb = 6'(35);
+    8'h56: expected_length_comb = 6'(35);
+    8'h57: expected_length_comb = 6'(12);
+    8'h58: expected_length_comb = 6'(23);
+    8'h59: expected_length_comb = 6'(20);
+    8'h68: expected_length_comb = 6'(21);
+    default: variant_known_comb = 1'b0;
+  endcase
+end
+
 always_ff @(posedge clk) begin
   if (rst) begin
     state <= ST_PARSE;
     beat_count <= '0;
     fields_valid_reg <= 1'b0;
     fields_fresh <= 1'b0;
+    malformed_count <= 32'd0;
     message_type_reg <= 8'd0;
     stock_locate_reg <= 16'd0;
     tracking_number_reg <= 16'd0;
@@ -405,7 +443,25 @@ always_ff @(posedge clk) begin
                 8'h53: begin
                   event_code_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[63:56] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -417,7 +473,25 @@ always_ff @(posedge clk) begin
                 8'h57: begin
                   breached_level_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -437,7 +511,25 @@ always_ff @(posedge clk) begin
             end
             12: begin
               case (message_type_reg)
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[55:48] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -446,7 +538,25 @@ always_ff @(posedge clk) begin
                 8'h56: begin
                   level_1_reg[55:48] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -466,7 +576,25 @@ always_ff @(posedge clk) begin
             end
             13: begin
               case (message_type_reg)
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[47:40] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -475,7 +603,25 @@ always_ff @(posedge clk) begin
                 8'h56: begin
                   level_1_reg[47:40] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -495,7 +641,25 @@ always_ff @(posedge clk) begin
             end
             14: begin
               case (message_type_reg)
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[39:32] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -504,7 +668,25 @@ always_ff @(posedge clk) begin
                 8'h56: begin
                   level_1_reg[39:32] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -524,7 +706,25 @@ always_ff @(posedge clk) begin
             end
             15: begin
               case (message_type_reg)
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[31:24] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -533,7 +733,25 @@ always_ff @(posedge clk) begin
                 8'h56: begin
                   level_1_reg[31:24] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -553,7 +771,25 @@ always_ff @(posedge clk) begin
             end
             16: begin
               case (message_type_reg)
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[23:16] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -562,7 +798,25 @@ always_ff @(posedge clk) begin
                 8'h56: begin
                   level_1_reg[23:16] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -582,7 +836,25 @@ always_ff @(posedge clk) begin
             end
             17: begin
               case (message_type_reg)
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[15:8] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -591,7 +863,25 @@ always_ff @(posedge clk) begin
                 8'h56: begin
                   level_1_reg[15:8] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -611,7 +901,25 @@ always_ff @(posedge clk) begin
             end
             18: begin
               case (message_type_reg)
-                8'h48, 8'h4a, 8'h4b, 8'h4e, 8'h52, 8'h59, 8'h68: begin
+                8'h48: begin
+                  stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h4a: begin
+                  stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h4b: begin
+                  stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h4e: begin
+                  stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h52: begin
+                  stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h59: begin
+                  stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h68: begin
                   stock_reg[7:0] <= s_axis_tdata[7:0];
                 end
                 8'h4c: begin
@@ -620,7 +928,25 @@ always_ff @(posedge clk) begin
                 8'h56: begin
                   level_1_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h43, 8'h44, 8'h45, 8'h46, 8'h50, 8'h58: begin
+                8'h41: begin
+                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h44: begin
+                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
+                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h58: begin
                   order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -664,10 +990,19 @@ always_ff @(posedge clk) begin
                 8'h68: begin
                   market_code_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   buy_sell_indicator_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  executed_shares_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   executed_shares_reg[31:24] <= s_axis_tdata[7:0];
                 end
                 8'h58: begin
@@ -711,10 +1046,19 @@ always_ff @(posedge clk) begin
                 8'h68: begin
                   operational_halt_action_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   shares_reg[31:24] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  shares_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  shares_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  executed_shares_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   executed_shares_reg[23:16] <= s_axis_tdata[7:0];
                 end
                 8'h58: begin
@@ -752,10 +1096,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   auction_collar_reference_price_reg[15:8] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   shares_reg[23:16] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  shares_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  shares_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  executed_shares_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   executed_shares_reg[15:8] <= s_axis_tdata[7:0];
                 end
                 8'h58: begin
@@ -793,10 +1146,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   auction_collar_reference_price_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   shares_reg[15:8] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  shares_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  shares_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  executed_shares_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   executed_shares_reg[7:0] <= s_axis_tdata[7:0];
                 end
                 8'h58: begin
@@ -834,10 +1196,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   upper_auction_collar_price_reg[31:24] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   shares_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  shares_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  shares_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[63:56] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -872,10 +1243,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   upper_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   order_stock_reg[63:56] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[55:48] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -907,10 +1287,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   upper_auction_collar_price_reg[15:8] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   order_stock_reg[55:48] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  order_stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_stock_reg[55:48] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[47:40] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -939,10 +1328,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   upper_auction_collar_price_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   order_stock_reg[47:40] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  order_stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_stock_reg[47:40] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[39:32] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -971,10 +1369,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   lower_auction_collar_price_reg[31:24] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   order_stock_reg[39:32] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  order_stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_stock_reg[39:32] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[31:24] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -1000,10 +1407,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   lower_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   order_stock_reg[31:24] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[23:16] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -1029,10 +1445,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   lower_auction_collar_price_reg[15:8] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   order_stock_reg[23:16] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  order_stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_stock_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[15:8] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -1058,10 +1483,19 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   lower_auction_collar_price_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
                   order_stock_reg[15:8] <= s_axis_tdata[7:0];
                 end
-                8'h43, 8'h45: begin
+                8'h46: begin
+                  order_stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
+                  order_stock_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h43: begin
+                  match_number_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h45: begin
                   match_number_reg[7:0] <= s_axis_tdata[7:0];
                 end
                 8'h55: begin
@@ -1087,7 +1521,13 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   auction_collar_extension_reg[31:24] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
+                  order_stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  order_stock_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
                   order_stock_reg[7:0] <= s_axis_tdata[7:0];
                 end
                 8'h43: begin
@@ -1116,7 +1556,13 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   auction_collar_extension_reg[23:16] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
+                  price_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  price_reg[31:24] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
                   price_reg[31:24] <= s_axis_tdata[7:0];
                 end
                 8'h43: begin
@@ -1145,7 +1591,13 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   auction_collar_extension_reg[15:8] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
+                  price_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  price_reg[23:16] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
                   price_reg[23:16] <= s_axis_tdata[7:0];
                 end
                 8'h43: begin
@@ -1174,7 +1626,13 @@ always_ff @(posedge clk) begin
                 8'h4a: begin
                   auction_collar_extension_reg[7:0] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
+                  price_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  price_reg[15:8] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
                   price_reg[15:8] <= s_axis_tdata[7:0];
                 end
                 8'h43: begin
@@ -1197,7 +1655,13 @@ always_ff @(posedge clk) begin
                 8'h52: begin
                   etp_leverage_factor_reg[23:16] <= s_axis_tdata[7:0];
                 end
-                8'h41, 8'h46, 8'h50: begin
+                8'h41: begin
+                  price_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h46: begin
+                  price_reg[7:0] <= s_axis_tdata[7:0];
+                end
+                8'h50: begin
                   price_reg[7:0] <= s_axis_tdata[7:0];
                 end
                 8'h43: begin
@@ -1385,12 +1849,18 @@ always_ff @(posedge clk) begin
           endcase
 
           if (s_axis_tlast) begin
-            // Frame complete — signal fresh regardless of which variant arrived.
-            fields_fresh <= 1'b1;
-            fields_valid_reg <= 1'b1;
+            // Publish exact known variants.
+            if (variant_known_comb && frame_bytes_comb == expected_length_comb) begin
+              fields_fresh <= 1'b1;
+              fields_valid_reg <= 1'b1;
+            end else if (!s_axis_tuser) begin
+              malformed_count <= malformed_count + 32'd1;
+            end
             beat_count <= '0;
           end else if (beat_count == PARSE_BEATS - 1) begin
-            // Over-long frame: drain the remainder without signalling fresh.
+            // Drain over-long frame.
+            if (!s_axis_tuser)
+              malformed_count <= malformed_count + 32'd1;
             beat_count <= '0;
             state <= ST_DRAIN;
           end else begin

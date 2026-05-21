@@ -1,12 +1,12 @@
-// hft_pipelined_8bit: three pyhdlweaver-generated modules wired in series.
+// hft_pipelined_64bit: three pyhdlweaver-generated modules wired in series.
 //
 // Raw Ethernet frame
-//   -> udp_port_router_8bit  (parse Eth+IP+UDP 42 bytes, route by dst port, forward UDP payload)
-//   -> mold_udp_8bit         (parse MoldUDP64 outer header, demux length-prefixed messages)
-//   -> itch_parser_8bit      (parse ITCH 5.0 fields from each message frame)
+//   -> udp_port_router_64bit  (parse Eth+IP+UDP 42 bytes, route by dst port, forward UDP payload)
+//   -> mold_udp_64bit         (parse MoldUDP64 outer header, demux length-prefixed messages)
+//   -> itch_parser_64bit      (parse ITCH 5.0 fields from each message frame)
 
-module hft_pipelined_8bit #(
-  parameter int DATA_WIDTH  = 8,
+module hft_pipelined_64bit #(
+  parameter int DATA_WIDTH  = 64,
   parameter int KEEP_WIDTH  = DATA_WIDTH / 8,
   parameter int TDEST_WIDTH = 4
 ) (
@@ -141,7 +141,7 @@ module hft_pipelined_8bit #(
   logic                   s2_tvalid;
   logic                   s2_tready;
 
-  udp_port_router_8bit u_udp_router (
+  udp_port_router_64bit u_udp_router (
     .clk, .rst,
 
     .s_axis_tdata,  .s_axis_tkeep,  .s_axis_tlast,
@@ -157,7 +157,7 @@ module hft_pipelined_8bit #(
     .fields_valid(), .fields_fresh()
   );
 
-  mold_udp_8bit u_mold_udp (
+  mold_udp_64bit u_mold_udp (
     .clk, .rst,
 
     .s_axis_tdata(s1_tdata),  .s_axis_tkeep(s1_tkeep),  .s_axis_tlast(s1_tlast),
@@ -173,7 +173,7 @@ module hft_pipelined_8bit #(
     .fields_valid(), .fields_fresh()
   );
 
-  itch_parser_8bit u_itch (
+  itch_parser_64bit u_itch (
     .clk, .rst,
 
     .s_axis_tdata(s2_tdata),  .s_axis_tkeep(s2_tkeep),  .s_axis_tlast(s2_tlast),

@@ -43,9 +43,7 @@ class DiscriminatedSystemVerilogGenerator(SystemVerilogGenerator):
         bus_bytes = stream.data_width // 8
         parse_beats = (max_length + bus_bytes - 1) // bus_bytes
 
-        # Virtual FixedProtocol with all fields so the module template
-        # emits output ports and the emitter emits register declarations
-        # for common and variant fields together.
+        # Virtual protocol includes every output field.
         virtual_protocol = FixedProtocol(
             name=protocol.name,
             fields=all_fields,
@@ -63,20 +61,36 @@ class DiscriminatedSystemVerilogGenerator(SystemVerilogGenerator):
 
         emitter = FieldExtractEmitter(plan)
         beat_entries = self._build_beat_entries(protocol, layout)
+        discriminator_beat, discriminator_current_expr = _field_expr(protocol.discriminator, layout)
+        variant_lengths = tuple(
+            (sv_int(protocol.discriminator.width, key), length)
+            for key, length in sorted(protocol.variant_length.items())
+        )
 
         body = self.renderer.render(
             "discriminated_body.sv.j2",
             plan=plan,
             parse_beats=parse_beats,
             beat_count_width=counter_width(parse_beats),
+            length_count_width=counter_width(max_length + bus_bytes + 1),
             field_declarations=emitter.emit_declarations(),
             field_reset_assignments=emitter.emit_reset_assignments(),
             beat_entries=beat_entries,
             discriminator_name=protocol.discriminator.name,
+            discriminator_width=protocol.discriminator.width,
+            discriminator_beat=discriminator_beat,
+            discriminator_current_expr=discriminator_current_expr,
+            variant_lengths=variant_lengths,
             forward=protocol.forward,
         )
 
-        content = self.renderer.render("module.sv.j2", plan=plan, body=body, forward=protocol.forward)
+        content = self.renderer.render(
+            "module.sv.j2",
+            plan=plan,
+            body=body,
+            forward=protocol.forward,
+            extra_counter_ports=[{"name": "malformed_count", "width": 32}],
+        )
         return GeneratedFile(name=f"{plan.module_name}.sv", content=content)
 
     def _build_beat_entries(
@@ -86,41 +100,41 @@ class DiscriminatedSystemVerilogGenerator(SystemVerilogGenerator):
     ) -> list[_BeatEntry]:
         common_names = {f.name for f in protocol.fields}
 
-        # field_name -> sorted list of variant keys that include this field
+        # Variant keys per field.
         field_to_keys: dict[str, list[int]] = {}
         for key, vfields in protocol.variants.items():
             for f in vfields:
                 if f.name not in common_names:
                     field_to_keys.setdefault(f.name, []).append(key)
 
-        # Unique variant fields, preserving insertion order
+        # Unique variant fields.
         variant_fields: dict[str, Field] = {}
         for vfields in protocol.variants.values():
             for f in vfields:
                 if f.name not in common_names and f.name not in variant_fields:
                     variant_fields[f.name] = f
 
-        # Common captures by beat
+        # Common captures by beat.
         common_by_beat: dict[int, list[str]] = {}
         for field in protocol.fields:
             for assignment, beat in _field_assignments(field, layout):
                 common_by_beat.setdefault(beat, []).append(assignment)
 
-        # Variant captures: {beat: {sorted_keys_tuple: [assignments]}}
-        variant_by_beat: dict[int, dict[tuple[int, ...], list[str]]] = {}
-        disc_width = protocol.discriminator.width
+        # One branch per discriminator value.
+        variant_by_beat: dict[int, dict[int, list[str]]] = {}
         for fname, field in variant_fields.items():
             keys = tuple(sorted(field_to_keys[fname]))
             for assignment, beat in _field_assignments(field, layout):
-                variant_by_beat.setdefault(beat, {}).setdefault(keys, []).append(assignment)
+                for key in keys:
+                    variant_by_beat.setdefault(beat, {}).setdefault(key, []).append(assignment)
 
         all_beats = sorted(set(list(common_by_beat) + list(variant_by_beat)))
         entries: list[_BeatEntry] = []
         for beat in all_beats:
             common = tuple(common_by_beat.get(beat, []))
             variants: list[_VariantEntry] = []
-            for keys, assignments in variant_by_beat.get(beat, {}).items():
-                key_literals = tuple(sv_int(disc_width, k) for k in keys)
+            for key, assignments in variant_by_beat.get(beat, {}).items():
+                key_literals = (sv_int(protocol.discriminator.width, key),)
                 variants.append(_VariantEntry(
                     key_literals=key_literals,
                     assignments=tuple(assignments),
@@ -159,3 +173,30 @@ def _field_assignments(field: Field, layout: StreamLayout) -> list[tuple[str, in
             )
             results.append((assignment, beat))
     return results
+
+
+def _field_expr(field: Field, layout: StreamLayout) -> tuple[int, str]:
+    """Return the beat and current-beat expression for a field that fits in one beat."""
+
+    beats = layout.field_beats(field)
+    if len(beats) != 1:
+        raise NotImplementedError(
+            "DiscriminatedProtocol discriminator fields must fit in one stream beat"
+        )
+
+    beat_info = beats[0]
+    chunks: list[str] = []
+    bus_bytes = layout.layout.bus_width_bytes
+    byte_offset = layout.layout.byte_offset
+
+    for byte_in_beat in range(beat_info.byte_lo, beat_info.byte_hi + 1):
+        protocol_byte = beat_info.beat * bus_bytes + byte_in_beat - byte_offset
+        field_byte = protocol_byte - field.offset
+        bits_this_byte = min(8, field.width - field_byte * 8)
+        bit_lo = byte_in_beat * 8
+        bit_hi = bit_lo + bits_this_byte - 1
+        chunks.append(f"s_axis_tdata[{bit_hi}:{bit_lo}]")
+
+    if len(chunks) == 1:
+        return beat_info.beat, chunks[0]
+    return beat_info.beat, "{" + ", ".join(chunks) + "}"

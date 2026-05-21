@@ -1,8 +1,8 @@
-// eth_ip_route_broadcast_udp_32bit generated with pyhdlweaver by Jakob Gross
+// udp_port_router_80bit generated with pyhdlweaver by Jakob Gross
 // https://github.com/jakobgross/pyhdlweaver
 
-module eth_ip_route_broadcast_udp_32bit #(
-  parameter int DATA_WIDTH = 32,
+module udp_port_router_80bit #(
+  parameter int DATA_WIDTH = 80,
   parameter int KEEP_WIDTH = DATA_WIDTH / 8,
   parameter int TDEST_WIDTH = 4
 ) (
@@ -24,19 +24,19 @@ module eth_ip_route_broadcast_udp_32bit #(
   output logic m_axis_tvalid,
   input  logic m_axis_tready,
 
+  // configuration registers
+  input  logic config_valid,
+  input  logic [15:0] cfg_dst_port,
+
   // parsed fields
-  output logic [15:0] eth_ethertype,
-  output logic [7:0] ip_version_ihl,
-  output logic [15:0] ip_total_length,
-  output logic [15:0] ip_flags_frag,
-  output logic [7:0] ip_protocol,
-  output logic [31:0] ip_src,
-  output logic [31:0] ip_dst,
+  output logic [15:0] udp_dport,
+  output logic [15:0] udp_length,
+  output logic [15:0] udp_checksum,
   output logic fields_valid,
   output logic fields_fresh
 );
 
-localparam int PARSE_BEATS = 9;
+localparam int PARSE_BEATS = 5;
 localparam int PAYLOAD_START_BYTE = 2;
 localparam int TAIL_BYTES = KEEP_WIDTH - PAYLOAD_START_BYTE;
 
@@ -54,7 +54,7 @@ typedef enum logic [2:0] {
 } state_t;
 
 state_t state;
-logic [3:0] beat_count;
+logic [2:0] beat_count;
 logic sticky_tuser;
 logic parser_drop;
 logic payload_fire;
@@ -75,14 +75,11 @@ logic [KEEP_WIDTH-1:0] parse_tail_keep_comb;
 int unsigned input_valid_bytes_comb;
 int unsigned parse_tail_bytes_comb;
 
-logic [15:0] eth_ethertype_reg;
-logic [7:0] ip_version_ihl_reg;
-logic [15:0] ip_total_length_reg;
-logic [15:0] ip_flags_frag_reg;
-logic [7:0] ip_protocol_reg;
-logic [31:0] ip_src_reg;
-logic [31:0] ip_dst_reg;
-logic [31:0] ip_dst_comb;
+logic [15:0] udp_dport_reg;
+logic [15:0] udp_length_reg;
+logic [15:0] udp_checksum_reg;
+logic [15:0] udp_checksum_comb;
+logic [15:0] cfg_dst_port_reg;
 
 assign parse_fire   = (state == ST_PARSE)   && s_axis_tvalid && s_axis_tready;
 // Consume input for realigned output.
@@ -133,13 +130,9 @@ assign m_axis_tuser  = sticky_tuser | parser_drop |
 assign m_axis_tdest  = route_tdest_reg;
 
 // Expose all parsed field values as output ports.
-assign eth_ethertype = eth_ethertype_reg;
-assign ip_version_ihl = ip_version_ihl_reg;
-assign ip_total_length = ip_total_length_reg;
-assign ip_flags_frag = ip_flags_frag_reg;
-assign ip_protocol = ip_protocol_reg;
-assign ip_src = ip_src_reg;
-assign ip_dst = ip_dst_reg;
+assign udp_dport = udp_dport_reg;
+assign udp_length = udp_length_reg;
+assign udp_checksum = udp_checksum_reg;
 // Header fields are valid outside parse.
 assign fields_valid = (state != ST_PARSE);
 
@@ -187,10 +180,10 @@ always_comb begin
 end
 
 always_comb begin
-  ip_dst_comb = ip_dst_reg;
+  udp_checksum_comb = udp_checksum_reg;
   if (parse_fire && beat_count == PARSE_BEATS - 1) begin
-    ip_dst_comb[15:8] = s_axis_tdata[7:0];
-    ip_dst_comb[7:0] = s_axis_tdata[15:8];
+    udp_checksum_comb[15:8] = s_axis_tdata[7:0];
+    udp_checksum_comb[7:0] = s_axis_tdata[15:8];
   end
 end
 
@@ -199,9 +192,8 @@ assign drop_next = 1'b0;
 
 always_comb begin
   // Default route with overrides.
-  route_tdest_next = 4'h3;
-  if (ip_protocol_reg == 8'h11) route_tdest_next = 4'h1;
-  if (ip_dst_comb == 32'hffffffff) route_tdest_next = 4'h0;
+  route_tdest_next = 4'h1;
+  if (udp_dport_reg == cfg_dst_port_reg) route_tdest_next = 4'h0;
 end
 
 always_ff @(posedge clk) begin
@@ -216,14 +208,14 @@ always_ff @(posedge clk) begin
     tail_tlast_reg <= 1'b0;
     tail_tuser_reg <= 1'b0;
     fields_fresh <= 1'b0;
-    eth_ethertype_reg <= 16'd0;
-    ip_version_ihl_reg <= 8'd0;
-    ip_total_length_reg <= 16'd0;
-    ip_flags_frag_reg <= 16'd0;
-    ip_protocol_reg <= 8'd0;
-    ip_src_reg <= 32'd0;
-    ip_dst_reg <= 32'd0;
+    udp_dport_reg <= 16'd0;
+    udp_length_reg <= 16'd0;
+    udp_checksum_reg <= 16'd0;
+    cfg_dst_port_reg <= 16'h4d2;
   end else begin
+    if (config_valid) begin
+      cfg_dst_port_reg <= cfg_dst_port;
+    end
     if (parse_fire || payload_fire || drop_fire) begin
       sticky_tuser <= sticky_tuser | s_axis_tuser;
     end
@@ -238,32 +230,14 @@ always_ff @(posedge clk) begin
         if (parse_fire) begin
           case (beat_count)
             3: begin
-              eth_ethertype_reg[15:8] <= s_axis_tdata[7:0];
-              eth_ethertype_reg[7:0] <= s_axis_tdata[15:8];
-              ip_version_ihl_reg[7:0] <= s_axis_tdata[23:16];
+              udp_dport_reg[15:8] <= s_axis_tdata[55:48];
+              udp_dport_reg[7:0] <= s_axis_tdata[63:56];
+              udp_length_reg[15:8] <= s_axis_tdata[71:64];
+              udp_length_reg[7:0] <= s_axis_tdata[79:72];
             end
             4: begin
-              ip_total_length_reg[15:8] <= s_axis_tdata[7:0];
-              ip_total_length_reg[7:0] <= s_axis_tdata[15:8];
-            end
-            5: begin
-              ip_flags_frag_reg[15:8] <= s_axis_tdata[7:0];
-              ip_flags_frag_reg[7:0] <= s_axis_tdata[15:8];
-              ip_protocol_reg[7:0] <= s_axis_tdata[31:24];
-            end
-            6: begin
-              ip_src_reg[31:24] <= s_axis_tdata[23:16];
-              ip_src_reg[23:16] <= s_axis_tdata[31:24];
-            end
-            7: begin
-              ip_src_reg[15:8] <= s_axis_tdata[7:0];
-              ip_src_reg[7:0] <= s_axis_tdata[15:8];
-              ip_dst_reg[31:24] <= s_axis_tdata[23:16];
-              ip_dst_reg[23:16] <= s_axis_tdata[31:24];
-            end
-            8: begin
-              ip_dst_reg[15:8] <= s_axis_tdata[7:0];
-              ip_dst_reg[7:0] <= s_axis_tdata[15:8];
+              udp_checksum_reg[15:8] <= s_axis_tdata[7:0];
+              udp_checksum_reg[7:0] <= s_axis_tdata[15:8];
             end
             default: begin
               // No fields on this beat.

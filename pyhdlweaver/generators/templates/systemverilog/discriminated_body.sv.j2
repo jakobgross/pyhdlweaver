@@ -1,15 +1,20 @@
 localparam int PARSE_BEATS = {{ parse_beats }};
 
 typedef enum logic [0:0] {
-  // Capture all variant fields beat by beat.
+  // Capture variant fields.
   ST_PARSE,
-  // Consume the tail of an over-long (malformed) input frame.
+  // Drain malformed frame.
   ST_DRAIN
 } state_t;
 
 state_t state;
 logic [{{ beat_count_width - 1 }}:0] beat_count;
 logic fields_valid_reg;
+logic [{{ discriminator_width - 1 }}:0] discriminator_value_comb;
+logic [{{ length_count_width - 1 }}:0] frame_bytes_comb;
+logic [{{ length_count_width - 1 }}:0] expected_length_comb;
+logic variant_known_comb;
+int unsigned input_valid_bytes_comb;
 
 {% for declaration in field_declarations %}
 {{ declaration }}
@@ -21,10 +26,10 @@ assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign drain_fire = (state == ST_DRAIN) && s_axis_tvalid && s_axis_tready;
 
 {% if forward | default(true) %}
-// Hold input during drain; otherwise follow downstream readiness.
+// Input readiness by state.
 assign s_axis_tready = (state == ST_DRAIN) ? 1'b1 : m_axis_tready;
 
-// Pass the input stream through during parsing; suppress during drain.
+// Pass input during parse.
 assign m_axis_tdata  = s_axis_tdata;
 assign m_axis_tkeep  = s_axis_tkeep;
 assign m_axis_tlast  = s_axis_tlast;
@@ -35,11 +40,40 @@ assign m_axis_tvalid = (state == ST_PARSE) && s_axis_tvalid;
 assign s_axis_tready = 1'b1;
 {% endif %}
 
-// Expose all parsed fields as output ports.
+// Expose parsed fields.
 {% for field in plan.protocol.fields %}
 assign {{ field.name }} = {{ field.name }}_reg;
 {% endfor %}
 assign fields_valid = fields_valid_reg;
+
+assign discriminator_value_comb =
+  (beat_count == {{ discriminator_beat }}) ? {{ discriminator_current_expr }} : {{ discriminator_name }}_reg;
+
+function automatic int unsigned keep_count(input logic [KEEP_WIDTH-1:0] keep);
+  int unsigned count;
+  begin
+    count = 0;
+    for (int i = 0; i < KEEP_WIDTH; i++) begin
+      if (keep[i])
+        count++;
+    end
+    return count;
+  end
+endfunction
+
+always_comb begin
+  input_valid_bytes_comb = s_axis_tlast ? keep_count(s_axis_tkeep) : KEEP_WIDTH;
+  frame_bytes_comb = {{ length_count_width }}'(beat_count * KEEP_WIDTH + input_valid_bytes_comb);
+  expected_length_comb = '0;
+  variant_known_comb = 1'b1;
+
+  case (discriminator_value_comb)
+{% for key_literal, length in variant_lengths %}
+    {{ key_literal }}: expected_length_comb = {{ length_count_width }}'({{ length }});
+{% endfor %}
+    default: variant_known_comb = 1'b0;
+  endcase
+end
 
 always_ff @(posedge clk) begin
   if (rst) begin
@@ -47,6 +81,7 @@ always_ff @(posedge clk) begin
     beat_count <= '0;
     fields_valid_reg <= 1'b0;
     fields_fresh <= 1'b0;
+    malformed_count <= 32'd0;
 {% for assignment in field_reset_assignments %}
     {{ assignment }}
 {% endfor %}
@@ -80,12 +115,18 @@ always_ff @(posedge clk) begin
           endcase
 
           if (s_axis_tlast) begin
-            // Frame complete — signal fresh regardless of which variant arrived.
-            fields_fresh <= 1'b1;
-            fields_valid_reg <= 1'b1;
+            // Publish exact known variants.
+            if (variant_known_comb && frame_bytes_comb == expected_length_comb) begin
+              fields_fresh <= 1'b1;
+              fields_valid_reg <= 1'b1;
+            end else if (!s_axis_tuser) begin
+              malformed_count <= malformed_count + 32'd1;
+            end
             beat_count <= '0;
           end else if (beat_count == PARSE_BEATS - 1) begin
-            // Over-long frame: drain the remainder without signalling fresh.
+            // Drain over-long frame.
+            if (!s_axis_tuser)
+              malformed_count <= malformed_count + 32'd1;
             beat_count <= '0;
             state <= ST_DRAIN;
           end else begin

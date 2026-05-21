@@ -58,3 +58,4 @@ class AxisStream:
 STREAM_8  = AxisStream(data_width=8)
 STREAM_32 = AxisStream(data_width=32)
 STREAM_64 = AxisStream(data_width=64)
+STREAM_80 = AxisStream(data_width=80)

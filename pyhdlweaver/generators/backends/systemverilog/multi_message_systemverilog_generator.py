@@ -31,7 +31,7 @@ class MultiMessageSystemVerilogGenerator(SystemVerilogGenerator):
             raise ValueError(f"{sub_proto.name}: sub-message header length must be positive")
 
         length_field = sub_proto.length_field
-        scratch_count_width = counter_width(bus_bytes + 1)
+        scratch_count_width = counter_width((2 * bus_bytes) + 1)
         body_count_width = max(length_field.width, scratch_count_width)
         outer_layout = StreamLayout(stream, byte_offset=0)
         outer_parse_beats = (outer_total_length + bus_bytes - 1) // bus_bytes

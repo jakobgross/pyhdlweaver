@@ -101,10 +101,9 @@ def kept_bytes(frame: AxiStreamFrame) -> bytes:
 
 def assert_only_ip_payload_is_forwarded(frame: AxiStreamFrame, frame_bytes: bytes) -> None:
     keep = frame_tkeep_values(frame)
-    valid_frame_bytes = len(frame_bytes)
-    assert keep[:IP_PAYLOAD_OFFSET] == [0] * IP_PAYLOAD_OFFSET
-    assert keep[IP_PAYLOAD_OFFSET:valid_frame_bytes] == [1] * (valid_frame_bytes - IP_PAYLOAD_OFFSET)
-    assert keep[valid_frame_bytes:DATA_WIDTH_BYTES] == [0] * (DATA_WIDTH_BYTES - valid_frame_bytes)
+    payload_len = len(frame_bytes) - IP_PAYLOAD_OFFSET
+    assert keep[:payload_len] == [1] * payload_len
+    assert keep[payload_len:] == [0] * (len(keep) - payload_len)
 
     assert kept_bytes(frame) == frame_bytes[IP_PAYLOAD_OFFSET:]
     assert all(value == 0 for value in frame_tdest_values(frame))
@@ -112,7 +111,7 @@ def assert_only_ip_payload_is_forwarded(frame: AxiStreamFrame, frame_bytes: byte
 
 @cocotb.test()
 async def forwards_only_udp_payload_from_first_512bit_beat(dut):
-    """Payload bytes in the parse beat are forwarded with header bytes masked off."""
+    """Payload bytes in the parse beat are packed down to output lane 0."""
     cocotb.start_soon(Clock(dut.clk, CLOCK_PERIOD_NS, unit="ns").start())
     source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "s_axis"), dut.clk, dut.rst)
     sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "m_axis"), dut.clk, dut.rst)

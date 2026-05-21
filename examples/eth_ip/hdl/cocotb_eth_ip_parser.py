@@ -163,8 +163,9 @@ async def propagates_tuser_seen_after_payload_forwarding_started(dut):
     )
 
     assert_forwarded_frame(frame, frame_bytes)
-    parse_tail_bytes = (-IP_PAYLOAD_OFFSET) % DATA_WIDTH_BYTES
-    clean_prefix = parse_tail_bytes + DATA_WIDTH_BYTES
+    first_error_input_byte = (first_payload_beat + 1) * DATA_WIDTH_BYTES
+    first_error_output_byte = first_error_input_byte - IP_PAYLOAD_OFFSET
+    clean_prefix = (first_error_output_byte // DATA_WIDTH_BYTES) * DATA_WIDTH_BYTES
     assert frame_tuser_values(frame)[:clean_prefix] == [0] * clean_prefix
     assert all(value == 1 for value in frame_tuser_values(frame)[clean_prefix:])
 

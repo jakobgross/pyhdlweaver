@@ -1,8 +1,8 @@
-// mold_udp_24bit generated with pyhdlweaver by Jakob Gross
+// mold_udp_64bit generated with pyhdlweaver by Jakob Gross
 // https://github.com/jakobgross/pyhdlweaver
 
-module mold_udp_24bit #(
-  parameter int DATA_WIDTH = 24,
+module mold_udp_64bit #(
+  parameter int DATA_WIDTH = 64,
   parameter int KEEP_WIDTH = DATA_WIDTH / 8,
   parameter int TDEST_WIDTH = 4
 ) (
@@ -36,9 +36,9 @@ module mold_udp_24bit #(
   output logic fields_fresh
 );
 
-localparam int PARSE_BEATS = 7;
+localparam int PARSE_BEATS = 3;
 localparam int OUTER_TOTAL_BYTES = 20;
-localparam int OUTER_TAIL_START = 2;
+localparam int OUTER_TAIL_START = 4;
 localparam int SUB_HEADER_BYTES = 2;
 
 typedef enum logic [1:0] {
@@ -53,12 +53,12 @@ typedef enum logic [1:0] {
 } state_t;
 
 state_t state;
-logic [2:0] beat_count;
+logic [1:0] beat_count;
 logic [1:0] sub_header_offset_reg;
 logic [15:0] msg_remaining_reg;
 logic [15:0] msg_bytes_remaining_reg;
 logic [(2*DATA_WIDTH)-1:0] scratch_data_reg;
-logic [2:0] scratch_count_reg;
+logic [4:0] scratch_count_reg;
 logic scratch_last_reg;
 logic sticky_tuser_reg;
 logic [7:0] scratch_byte_comb;
@@ -69,6 +69,7 @@ logic mold_message_fields_fresh_reg;
 logic [79:0] session_id_reg;
 logic [63:0] seq_num_reg;
 logic [15:0] msg_count_reg;
+logic [63:0] seq_num_comb;
 logic [15:0] msg_count_comb;
 logic [15:0] mold_message_msg_len_reg;
 logic [15:0] mold_message_msg_len_comb;
@@ -83,7 +84,7 @@ int unsigned outer_tail_count_comb;
 
 assign parse_fire = (state == ST_PARSE) && s_axis_tvalid && s_axis_tready;
 assign body_needs_input = (state == ST_MSG_BODY) &&
-                          (scratch_count_reg < 3'(KEEP_WIDTH)) &&
+                          (scratch_count_reg < 5'(KEEP_WIDTH)) &&
                           (16'(msg_bytes_remaining_reg) > 16'(scratch_count_reg)) &&
                           !scratch_last_reg;
 assign scratch_load_fire = (((state == ST_MSG_HDR) && (scratch_count_reg == '0)) ||
@@ -138,7 +139,7 @@ always_comb begin
     if (16'(msg_bytes_remaining_reg) <= 16'(scratch_count_reg) &&
         16'(msg_bytes_remaining_reg) <= 16'(KEEP_WIDTH))
       body_out_bytes_comb = 16'(msg_bytes_remaining_reg);
-    else if (scratch_count_reg < 3'(KEEP_WIDTH))
+    else if (scratch_count_reg < 5'(KEEP_WIDTH))
       body_out_bytes_comb = 16'(scratch_count_reg);
     else
       body_out_bytes_comb = 16'(KEEP_WIDTH);
@@ -174,10 +175,18 @@ assign mold_message_fields_valid = (state == ST_MSG_BODY);
 assign mold_message_fields_fresh = mold_message_fields_fresh_reg;
 
 always_comb begin
+  seq_num_comb = seq_num_reg;
+  if (parse_fire && beat_count == PARSE_BEATS - 1) begin
+    seq_num_comb[15:8] = s_axis_tdata[7:0];
+    seq_num_comb[7:0] = s_axis_tdata[15:8];
+  end
+end
+
+always_comb begin
   msg_count_comb = msg_count_reg;
   if (parse_fire && beat_count == PARSE_BEATS - 1) begin
-    msg_count_comb[15:8] = s_axis_tdata[7:0];
-    msg_count_comb[7:0] = s_axis_tdata[15:8];
+    msg_count_comb[15:8] = s_axis_tdata[23:16];
+    msg_count_comb[7:0] = s_axis_tdata[31:24];
   end
 end
 
@@ -227,35 +236,27 @@ always_ff @(posedge clk) begin
               session_id_reg[79:72] <= s_axis_tdata[7:0];
               session_id_reg[71:64] <= s_axis_tdata[15:8];
               session_id_reg[63:56] <= s_axis_tdata[23:16];
+              session_id_reg[55:48] <= s_axis_tdata[31:24];
+              session_id_reg[47:40] <= s_axis_tdata[39:32];
+              session_id_reg[39:32] <= s_axis_tdata[47:40];
+              session_id_reg[31:24] <= s_axis_tdata[55:48];
+              session_id_reg[23:16] <= s_axis_tdata[63:56];
             end
             1: begin
-              session_id_reg[55:48] <= s_axis_tdata[7:0];
-              session_id_reg[47:40] <= s_axis_tdata[15:8];
-              session_id_reg[39:32] <= s_axis_tdata[23:16];
+              session_id_reg[15:8] <= s_axis_tdata[7:0];
+              session_id_reg[7:0] <= s_axis_tdata[15:8];
+              seq_num_reg[63:56] <= s_axis_tdata[23:16];
+              seq_num_reg[55:48] <= s_axis_tdata[31:24];
+              seq_num_reg[47:40] <= s_axis_tdata[39:32];
+              seq_num_reg[39:32] <= s_axis_tdata[47:40];
+              seq_num_reg[31:24] <= s_axis_tdata[55:48];
+              seq_num_reg[23:16] <= s_axis_tdata[63:56];
             end
             2: begin
-              session_id_reg[31:24] <= s_axis_tdata[7:0];
-              session_id_reg[23:16] <= s_axis_tdata[15:8];
-              session_id_reg[15:8] <= s_axis_tdata[23:16];
-            end
-            3: begin
-              session_id_reg[7:0] <= s_axis_tdata[7:0];
-              seq_num_reg[63:56] <= s_axis_tdata[15:8];
-              seq_num_reg[55:48] <= s_axis_tdata[23:16];
-            end
-            4: begin
-              seq_num_reg[47:40] <= s_axis_tdata[7:0];
-              seq_num_reg[39:32] <= s_axis_tdata[15:8];
-              seq_num_reg[31:24] <= s_axis_tdata[23:16];
-            end
-            5: begin
-              seq_num_reg[23:16] <= s_axis_tdata[7:0];
-              seq_num_reg[15:8] <= s_axis_tdata[15:8];
-              seq_num_reg[7:0] <= s_axis_tdata[23:16];
-            end
-            6: begin
-              msg_count_reg[15:8] <= s_axis_tdata[7:0];
-              msg_count_reg[7:0] <= s_axis_tdata[15:8];
+              seq_num_reg[15:8] <= s_axis_tdata[7:0];
+              seq_num_reg[7:0] <= s_axis_tdata[15:8];
+              msg_count_reg[15:8] <= s_axis_tdata[23:16];
+              msg_count_reg[7:0] <= s_axis_tdata[31:24];
             end
             default: ;
           endcase
@@ -279,7 +280,7 @@ always_ff @(posedge clk) begin
                 if (i < outer_tail_count_comb)
                   scratch_data_reg[i*8 +: 8] <= s_axis_tdata[(OUTER_TAIL_START + i)*8 +: 8];
               end
-              scratch_count_reg <= 3'(outer_tail_count_comb);
+              scratch_count_reg <= 5'(outer_tail_count_comb);
               scratch_last_reg <= s_axis_tlast;
 
               if (msg_count_comb == '0) begin
@@ -309,7 +310,7 @@ always_ff @(posedge clk) begin
             if (s_axis_tuser)
               sticky_tuser_reg <= 1'b1;
             scratch_data_reg <= s_axis_tdata;
-            scratch_count_reg <= 3'(input_valid_bytes_comb);
+            scratch_count_reg <= 5'(input_valid_bytes_comb);
             scratch_last_reg <= s_axis_tlast;
             if (s_axis_tlast && input_valid_bytes_comb == 0) begin
               malformed_count <= malformed_count + 1'b1;
@@ -375,7 +376,7 @@ always_ff @(posedge clk) begin
                   scratch_data_reg[(scratch_count_reg + i)*8 +: 8] <= s_axis_tdata[i*8 +: 8];
               end
             end
-            scratch_count_reg <= scratch_count_reg + 3'(input_valid_bytes_comb);
+            scratch_count_reg <= scratch_count_reg + 5'(input_valid_bytes_comb);
             scratch_last_reg <= s_axis_tlast;
             if (s_axis_tlast && input_valid_bytes_comb == 0) begin
               malformed_count <= malformed_count + 1'b1;
@@ -388,7 +389,7 @@ always_ff @(posedge clk) begin
         end else if (body_fire) begin
           // Advance payload cursor.
           scratch_data_reg <= scratch_data_reg >> (body_out_bytes_comb * 8);
-          scratch_count_reg <= scratch_count_reg - 3'(body_out_bytes_comb);
+          scratch_count_reg <= scratch_count_reg - 5'(body_out_bytes_comb);
 
           if (body_truncated_comb) begin
             // Short payload.
@@ -403,7 +404,7 @@ always_ff @(posedge clk) begin
             msg_bytes_remaining_reg <= '0;
             if (msg_remaining_reg <= 1) begin
               msg_remaining_reg <= '0;
-              if (scratch_count_reg > 3'(body_out_bytes_comb)) begin
+              if (scratch_count_reg > 5'(body_out_bytes_comb)) begin
                 // Extra bytes after final message.
                 malformed_count <= malformed_count + 1'b1;
                 sticky_tuser_reg <= 1'b1;
@@ -418,7 +419,7 @@ always_ff @(posedge clk) begin
                 state <= ST_DRAIN;
               end
             end else begin
-              if (scratch_count_reg == 3'(body_out_bytes_comb) && scratch_last_reg) begin
+              if (scratch_count_reg == 5'(body_out_bytes_comb) && scratch_last_reg) begin
                 // Missing declared messages.
                 malformed_count <= malformed_count + 1'b1;
                 sticky_tuser_reg <= 1'b1;
