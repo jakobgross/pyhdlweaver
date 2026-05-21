@@ -10,3 +10,4 @@ build/
 examples/*/hdl/results.xml
 examples/*/hdl/sim_build/
 examples/*/hdl/*.vcd
+examples/*/c/*.so

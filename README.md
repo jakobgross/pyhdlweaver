@@ -18,7 +18,7 @@ pyhdlweaver separates three concerns:
 
 1. **What** the protocol looks like (field definitions, offsets, widths, validation rules)
 2. **How** it maps to hardware (bus width, beat layout, FSM structure)
-3. **What** output to generate (SystemVerilog, VHDL, C++ software parser, documentation)
+3. **What** output to generate (SystemVerilog, VHDL, C software parser, documentation)
 
 The protocol definition is written once in Python and can target any output language via Jinja2 templates.
 
@@ -53,12 +53,12 @@ Protocol Definition          Protocol Source
           │
           V
     Code Generator
-  (SystemVerilogGenerator, VHDLGenerator, CppGenerator)
+  (SystemVerilogGenerator, VHDLGenerator, CGenerator)
   via Jinja2 templates
           │
           V
   Generated Output
-  (.sv, .vhd, .cpp/.h, .md)
+  (.sv, .vhd, .c/.h, .md)
 ```
 
 ---
@@ -154,7 +154,7 @@ Protocol definitions can be loaded from multiple sources via a common interface:
 | ------------------------ | ---------------------------- |
 | `SystemVerilogGenerator` | `.sv`                        |
 | `VHDLGenerator`          | `.vhd`                       |
-| `CppGenerator`           | `.cpp` / `.h`                |
+| `CGenerator`             | `.c` / `.h`                  |
 | `MarkdownGenerator`      | `.md` protocol documentation |
 
 Backends use Jinja2 templates stored in `generators/templates/`.
@@ -218,7 +218,7 @@ pyhdlweaver/
       *.py                  Protocol classes (Fixed, Discriminated, etc.)
     actions/                Field action classes (Drop, Route, Capture, etc.)
     generators/
-      backends/             SystemVerilog, VHDL, C++ generator classes
+      backends/             SystemVerilog, VHDL, C generator classes
       templates/            Jinja2 .j2 template files
   tests/
     protocols/              Tests for protocol definitions and actions
@@ -238,12 +238,12 @@ pyhdlweaver/
 - [ ] Add documentation to backend generator classes
 - [ ] Add documentation to protocol definition classes
 - [ ] Add documentation to field action classes
-- [ ] Add docstrings to all public methods
-- [ ] Add type hints to all public methods
-- [ ] Add github actions for linting
-- [ ] Add github actions for running pytest
-- [ ] Add github actions for example cocotb tests
-
+- [x] Add docstrings to all public methods
+- [x] Add type hints to all public methods
+- [x] Add github actions for linting
+- [x] Add github actions for running pytest
+- [x] Add github actions for example cocotb tests
+- [x] Add github action for running ctype tests
 ## Milestones
 
 ### Milestone 1 - Core Data Model
@@ -303,7 +303,7 @@ pyhdlweaver/
 - [x] MoldUDP protocol definition
 - [x] ITCH 5.0 protocol definition (DiscriminatedProtocol)
 - [x] Stitch all (ETHIP + UDP + MoldUDP + ITCH) into a single SV file for a simple pipelined parser
-- [ ] Fix Case assignments in ITCH (same fields)
+- [x] Fix Case assignments in ITCH (same fields)
 - [ ] Full stack: Eth+IP+UDP+MoldUDP+ITCH generator (Do all the parsing in one parser for throughput and timing)
 - [ ] Broadcast splitter to DMA
 - [ ] cocotb integration tests with realistic packet captures
@@ -357,11 +357,11 @@ pyhdlweaver/
 - [ ] SBE message as `DiscriminatedProtocol`
 - [ ] Example: generate parser from real exchange SBE schema
 
-### Milestone 13 - C++ Software Parser Generator
-- [ ] `CppGenerator`
-- [ ] Jinja2 template: C++ header and source files
-- [ ] Runtime library for parsing from raw byte buffers
-- [ ] End-to-end test: generated C++ parser produces same output as HDL parser for
+### Milestone 13 - C Software Parser Generator
+- [x] `CGenerator`
+- [x] Jinja2 templates: C header and source files
+- [x] Generated examples for current protocol examples
+- [ ] End-to-end test: generated C parser produces same output as HDL parser
 
 ### Milestone 14 - Prioritize action types and multiple actions per field
 - [ ] Define action priority (validation before routing, capture at any point, etc.)

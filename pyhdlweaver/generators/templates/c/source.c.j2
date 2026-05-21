@@ -1,0 +1,190 @@
+#include "{{ module_name }}.h"
+
+#include <string.h>
+
+static uint64_t {{ module_name }}_read_be(
+    const uint8_t *data, size_t length, size_t offset, size_t width_bits)
+{
+    size_t width_bytes = (width_bits + 7u) / 8u;
+    uint64_t value = 0u;
+    size_t i;
+    if (offset > length || width_bytes > length - offset) {
+        return 0u;
+    }
+    for (i = 0u; i < width_bytes; i++) {
+        value = (value << 8u) | data[offset + i];
+    }
+    if (width_bits < 64u && (width_bits % 8u) != 0u) {
+        value &= (UINT64_C(1) << width_bits) - UINT64_C(1);
+    }
+    return value;
+}
+
+{% if uses_byte_copy %}
+static void {{ module_name }}_copy_bytes(
+    const uint8_t *data, size_t length, size_t offset,
+    uint8_t *out, size_t width_bytes)
+{
+    if (offset > length || width_bytes > length - offset) {
+        memset(out, 0, width_bytes);
+        return;
+    }
+    memcpy(out, data + offset, width_bytes);
+}
+{% endif %}
+
+{% macro read_fields(target, fields, base_offset='0u', indent='    ') -%}
+{% for field in fields %}
+{% if base_offset == '0u' %}
+{% set offset_expr = field.offset ~ 'u' %}
+{% else %}
+{% set offset_expr = base_offset ~ ' + ' ~ field.offset ~ 'u' %}
+{% endif %}
+{% if field.is_bytes %}
+{{ indent }}{{ module_name }}_copy_bytes(data, length, {{ offset_expr }}, {{ target }}.{{ field.name }}, {{ field.width_bytes }}u);
+{% else %}
+{{ indent }}{{ target }}.{{ field.name }} = ({{ field.c_type }}){{ module_name }}_read_be(data, length, {{ offset_expr }}, {{ field.width }}u);
+{% endif %}
+{% endfor %}
+{%- endmacro %}
+
+{{ module_name }}_config_t {{ module_name }}_default_config(void)
+{
+    {{ module_name }}_config_t config;
+{% if config_fields %}
+{% for field in config_fields %}
+    config.{{ field.name }} = {{ field.default }};
+{% endfor %}
+{% else %}
+    config.unused = 0u;
+{% endif %}
+    return config;
+}
+
+{% if kind == "discriminated" %}
+{{ module_name }}_result_t {{ module_name }}_parse(
+    {{ module_name }}_bytes_t input, const {{ module_name }}_config_t *config)
+{
+    {{ module_name }}_result_t result;
+    {{ module_name }}_config_t default_config = {{ module_name }}_default_config();
+    const uint8_t *data = input.data;
+    size_t length = input.length;
+    const {{ module_name }}_config_t *cfg = config ? config : &default_config;
+    memset(&result, 0, sizeof(result));
+    if (length < {{ parse_length }}u) {
+        result.error_flags |= {{ upper_name }}_ERROR_SHORT_INPUT;
+        result.ok = false;
+        return result;
+    }
+{{ read_fields('result', common_fields) }}
+    switch (result.{{ discriminator }}) {
+{% for variant in variants %}
+    case 0x{{ "%02X"|format(variant.value) }}u:
+        result.variant = {{ upper_name }}_VARIANT_{{ "%02X"|format(variant.value) }};
+        if (length < {{ variant.length }}u) {
+            result.error_flags |= {{ upper_name }}_ERROR_SHORT_INPUT;
+            break;
+        }
+{{ read_fields('result.data.variant_' ~ variant.tag, variant.fields, indent='        ') }}
+{% if forwards_payload %}
+        result.forwarded.data = data + {{ variant.length }}u;
+        result.forwarded.length = length - {{ variant.length }}u;
+{% endif %}
+        break;
+{% endfor %}
+    default:
+        result.error_flags |= {{ upper_name }}_ERROR_UNKNOWN_VARIANT;
+        break;
+    }
+{% for line in common_action_lines %}
+    {{ line }}
+{% endfor %}
+    result.ok = result.error_flags == 0u;
+    (void)data;
+    (void)cfg;
+    return result;
+}
+{% elif kind == "multi" %}
+{{ module_name }}_result_t {{ module_name }}_parse(
+    {{ module_name }}_bytes_t input, const {{ module_name }}_config_t *config)
+{
+    {{ module_name }}_result_t result;
+    {{ module_name }}_config_t default_config = {{ module_name }}_default_config();
+    const uint8_t *data = input.data;
+    size_t length = input.length;
+    const {{ module_name }}_config_t *cfg = config ? config : &default_config;
+    size_t offset;
+    size_t i;
+    memset(&result, 0, sizeof(result));
+    if (length < {{ parse_length }}u) {
+        result.error_flags |= {{ upper_name }}_ERROR_SHORT_INPUT;
+        result.ok = false;
+        return result;
+    }
+{{ read_fields('result', outer_fields) }}
+{% for line in outer_action_lines %}
+    {{ line }}
+{% endfor %}
+    result.message_count = (size_t)result.{{ message_count_field }};
+    if (result.message_count > {{ upper_name }}_MAX_MESSAGES) {
+        result.error_flags |= {{ upper_name }}_ERROR_TOO_MANY_MESSAGES;
+        result.parsed_message_count = {{ upper_name }}_MAX_MESSAGES;
+    } else {
+        result.parsed_message_count = result.message_count;
+    }
+    offset = {{ parse_length }}u;
+    for (i = 0u; i < result.parsed_message_count; i++) {
+        if (offset > length || {{ sub_header_length }}u > length - offset) {
+            result.error_flags |= {{ upper_name }}_ERROR_TRUNCATED_MESSAGE;
+            result.messages[i].error_flags |= {{ upper_name }}_ERROR_SHORT_INPUT;
+            break;
+        }
+{{ read_fields('result.messages[i]', sub_fields, base_offset='offset', indent='        ') }}
+        if ((size_t)result.messages[i].{{ sub_length_field }} > length - offset - {{ sub_header_length }}u) {
+            result.error_flags |= {{ upper_name }}_ERROR_TRUNCATED_MESSAGE;
+            result.messages[i].error_flags |= {{ upper_name }}_ERROR_TRUNCATED_MESSAGE;
+            break;
+        }
+        result.messages[i].payload.data = data + offset + {{ sub_header_length }}u;
+        result.messages[i].payload.length = (size_t)result.messages[i].{{ sub_length_field }};
+        result.messages[i].ok = result.messages[i].error_flags == 0u;
+        offset += {{ sub_header_length }}u + (size_t)result.messages[i].{{ sub_length_field }};
+    }
+    result.forwarded.data = data;
+    result.forwarded.length = offset <= length ? offset : length;
+    result.ok = result.error_flags == 0u;
+    (void)data;
+    (void)cfg;
+    return result;
+}
+{% else %}
+{{ module_name }}_result_t {{ module_name }}_parse(
+    {{ module_name }}_bytes_t input, const {{ module_name }}_config_t *config)
+{
+    {{ module_name }}_result_t result;
+    {{ module_name }}_config_t default_config = {{ module_name }}_default_config();
+    const uint8_t *data = input.data;
+    size_t length = input.length;
+    const {{ module_name }}_config_t *cfg = config ? config : &default_config;
+    memset(&result, 0, sizeof(result));
+    if (length < {{ parse_length }}u) {
+        result.error_flags |= {{ upper_name }}_ERROR_SHORT_INPUT;
+        result.ok = false;
+        return result;
+    }
+{{ read_fields('result', fields) }}
+{% for line in action_lines %}
+    {{ line }}
+{% endfor %}
+{% if forwards_payload %}
+    if ((result.error_flags & {{ upper_name }}_ERROR_DROPPED) == 0u) {
+        result.forwarded.data = data + {{ parse_length }}u;
+        result.forwarded.length = length - {{ parse_length }}u;
+    }
+{% endif %}
+    result.ok = result.error_flags == 0u;
+    (void)data;
+    (void)cfg;
+    return result;
+}
+{% endif %}

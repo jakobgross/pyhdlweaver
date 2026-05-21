@@ -1,0 +1,108 @@
+#ifndef {{ guard }}
+#define {{ guard }}
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+enum {{ module_name }}_error_flags {
+    {{ upper_name }}_ERROR_NONE = 0u,
+    {{ upper_name }}_ERROR_SHORT_INPUT = 1u << 0,
+    {{ upper_name }}_ERROR_DROPPED = 1u << 1,
+    {{ upper_name }}_ERROR_UNKNOWN_VARIANT = 1u << 2,
+    {{ upper_name }}_ERROR_TOO_MANY_MESSAGES = 1u << 3,
+    {{ upper_name }}_ERROR_TRUNCATED_MESSAGE = 1u << 4
+};
+
+typedef struct {{ module_name }}_bytes {
+    const uint8_t *data;
+    size_t length;
+} {{ module_name }}_bytes_t;
+
+typedef struct {{ module_name }}_config {
+{% if config_fields %}
+{% for field in config_fields %}
+    {{ field.c_type }} {{ field.name }};
+{% endfor %}
+{% else %}
+    uint8_t unused;
+{% endif %}
+} {{ module_name }}_config_t;
+
+{% macro field_members(fields) -%}
+{% for field in fields %}
+{% if field.is_bytes %}
+    uint8_t {{ field.name }}[{{ field.width_bytes }}];
+{% else %}
+    {{ field.c_type }} {{ field.name }};
+{% endif %}
+{% endfor %}
+{%- endmacro %}
+
+{% if kind == "discriminated" %}
+typedef enum {{ module_name }}_variant_kind {
+    {{ upper_name }}_VARIANT_UNKNOWN = 0u,
+{% for variant in variants %}
+    {{ upper_name }}_VARIANT_{{ "%02X"|format(variant.value) }} = 0x{{ "%02X"|format(variant.value) }}u{{ "," if not loop.last }}
+{% endfor %}
+} {{ module_name }}_variant_kind_t;
+
+{% for variant in variants %}
+typedef struct {{ module_name }}_variant_{{ variant.tag }} {
+{{ field_members(variant.fields) }}
+} {{ module_name }}_variant_{{ variant.tag }}_t;
+
+{% endfor %}
+typedef struct {{ module_name }}_result {
+{{ field_members(common_fields) }}
+    {{ module_name }}_variant_kind_t variant;
+    union {
+{% for variant in variants %}
+        {{ module_name }}_variant_{{ variant.tag }}_t variant_{{ variant.tag }};
+{% endfor %}
+    } data;
+    {{ module_name }}_bytes_t forwarded;
+    bool ok;
+    uint32_t error_flags;
+    bool has_destination;
+    uint32_t destination;
+} {{ module_name }}_result_t;
+{% elif kind == "multi" %}
+#ifndef {{ upper_name }}_MAX_MESSAGES
+#define {{ upper_name }}_MAX_MESSAGES 64u
+#endif
+
+typedef struct {{ module_name }}_message {
+{{ field_members(sub_fields) }}
+    {{ module_name }}_bytes_t payload;
+    bool ok;
+    uint32_t error_flags;
+} {{ module_name }}_message_t;
+
+typedef struct {{ module_name }}_result {
+{{ field_members(outer_fields) }}
+    size_t message_count;
+    size_t parsed_message_count;
+    {{ module_name }}_message_t messages[{{ upper_name }}_MAX_MESSAGES];
+    {{ module_name }}_bytes_t forwarded;
+    bool ok;
+    uint32_t error_flags;
+    bool has_destination;
+    uint32_t destination;
+} {{ module_name }}_result_t;
+{% else %}
+typedef struct {{ module_name }}_result {
+{{ field_members(fields) }}
+    {{ module_name }}_bytes_t forwarded;
+    bool ok;
+    uint32_t error_flags;
+    bool has_destination;
+    uint32_t destination;
+} {{ module_name }}_result_t;
+{% endif %}
+
+{{ module_name }}_config_t {{ module_name }}_default_config(void);
+{{ module_name }}_result_t {{ module_name }}_parse(
+    {{ module_name }}_bytes_t input, const {{ module_name }}_config_t *config);
+
+#endif /* {{ guard }} */

@@ -5,3 +5,8 @@ from dataclasses import dataclass
 class GeneratedFile:
     name: str
     content: str
+
+
+@dataclass(frozen=True)
+class GeneratedFiles:
+    files: tuple[GeneratedFile, ...]

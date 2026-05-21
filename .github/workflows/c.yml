@@ -1,0 +1,83 @@
+name: C
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  ctypes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,hdl]"
+
+      - name: Create result directory
+        run: mkdir -p test-results/c
+
+      - name: Run ETH/IP C ctypes tests
+        run: >
+          make -C examples/eth_ip/c
+          test_eth_ip_forward_udp
+          PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/eth-ip-forward-udp.xml"
+
+      - name: Run UDP port router C ctypes tests
+        run: >
+          make -C examples/udp/c
+          test_udp_port_router
+          PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/udp-port-router.xml"
+
+      - name: Run UDP classifier C ctypes tests
+        run: >
+          make -C examples/udp/c
+          test_udp_classifier
+          PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/udp-classifier.xml"
+
+      - name: Run MoldUDP C ctypes tests
+        run: >
+          make -C examples/mold_udp/c
+          test_mold_udp
+          PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/mold-udp.xml"
+
+      - name: Run ITCH C ctypes tests
+        run: >
+          make -C examples/itch/c
+          test_itch_parser
+          PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/itch-parser.xml"
+
+      - name: Run HFT pipeline C ctypes tests
+        run: >
+          make -C examples/hft_pipelined/c
+          test_hft_pipelined
+          PYTEST_ARGS="--junitxml=$GITHUB_WORKSPACE/test-results/c/hft-pipelined.xml"
+
+      - name: Publish C ctypes results
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v3
+        with:
+          name: C ctypes Results
+          path: test-results/c/*.xml
+          reporter: python-xunit
+
+      - name: Upload C ctypes results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: c-ctypes-results
+          path: test-results/c/*.xml
+          if-no-files-found: warn
