@@ -47,10 +47,10 @@ class AxisStream:
             f"AXI-Stream  data_width={self.data_width}b  keep_width={self.keep_width}b  user_width={self.user_width}b",
             f"  tdata  [{self.data_width-1}:0]",
             f"  tkeep  [{self.keep_width-1}:0]  (keep_all = 0b{self.keep_all:0{self.keep_width}b})",
-            f"  tlast  [0]",
+            "  tlast  [0]",
             f"  tuser  [{self.user_width-1}:0]  (bit 0 = frame error)",
-            f"  tvalid [0]  (flow control)",
-            f"  tready [0]  (flow control)",
+            "  tvalid [0]  (flow control)",
+            "  tready [0]  (flow control)",
         ]
         return "\n".join(lines)
 

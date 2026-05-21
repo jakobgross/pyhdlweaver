@@ -1,0 +1,62 @@
+name: Cocotb
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  cocotb:
+    runs-on: ubuntu-24.04
+    container: python:3.12-bookworm
+
+    steps:
+      - name: Install HDL tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends iverilog=11.0-1.1+b1 make=4.3-4.1
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[hdl]"
+
+      - name: Run ETH/IP cocotbs
+        run: >
+          make -C examples/eth_ip/hdl
+          test_eth_ip_32
+          test_eth_ip_24
+          test_eth_ip_udp_8
+          test_eth_ip_udp_512
+          test_eth_ip_route_broadcast_udp_32
+        env:
+          COCOTB_LOG_LEVEL: WARNING
+
+      - name: Run HFT cocotbs
+        run: make -C examples/hft_pipelined/hdl test
+        env:
+          COCOTB_LOG_LEVEL: WARNING
+
+      - name: Run ITCH cocotbs
+        run: >
+          make -C examples/itch/hdl
+          test_itch_8bit
+          test_itch_32bit
+          test_itch_64bit
+        env:
+          COCOTB_LOG_LEVEL: WARNING
+
+      - name: Run MoldUDP cocotbs
+        run: make -C examples/mold_udp/hdl test_mold_udp_all
+        env:
+          COCOTB_LOG_LEVEL: WARNING
+
+      - name: Run UDP cocotbs
+        run: >
+          make -C examples/udp/hdl
+          test_udp_port_router_8
+          test_udp_classifier_64
+        env:
+          COCOTB_LOG_LEVEL: WARNING

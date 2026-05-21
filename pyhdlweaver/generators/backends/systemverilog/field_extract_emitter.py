@@ -76,9 +76,9 @@ class FieldExtractEmitter:
             if not final_beat_slices:
                 continue
             lines = [
-                f"always_comb begin",
+                "always_comb begin",
                 f"  {field.name}_comb = {field.name}_reg;",
-                f"  if (parse_fire && beat_count == PARSE_BEATS - 1) begin",
+                "  if (parse_fire && beat_count == PARSE_BEATS - 1) begin",
             ]
             for field_hi, field_lo, bit_hi, bit_lo in final_beat_slices:
                 lines.append(
