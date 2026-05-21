@@ -26,6 +26,113 @@ The protocol definition is written once in Python and can target any output lang
 
 ---
 
+## Defining a Protocol
+
+1. Define fields with `Field(name, byte_offset, bit_width)`.
+2. Attach actions with `field.with_actions(...)`.
+3. Wrap fields in a protocol type.
+4. Pass the protocol and a stream to a generator.
+
+```python
+from pyhdlweaver.protocols.definitions.field import Field
+from pyhdlweaver.protocols import SidebandProtocol
+from pyhdlweaver.actions import DropOnMismatch
+from pyhdlweaver.generators import SystemVerilogGenerator
+from pyhdlweaver.stream.axi_stream import STREAM_32
+
+ethertype = Field("ethertype", offset=12, width=16).with_actions(
+    DropOnMismatch(expected=0x0800, counter="non_ipv4_drop_count")
+)
+
+protocol = SidebandProtocol(name="my_parser", fields=[ethertype], total_length=34)
+
+result = SystemVerilogGenerator().generate(
+    protocol=protocol,
+    stream=STREAM_32,
+    module_name="my_parser",
+)
+print(result.content)
+```
+
+Choose the protocol type based on how the frame ends:
+
+| Protocol type              | Use when                                           |
+| -------------------------- | -------------------------------------------------- |
+| `SidebandProtocol`         | payload length comes from tlast                    |
+| `LengthPrefixedProtocol`   | a header field carries the payload byte count      |
+| `FixedProtocol`            | total length is constant and known at compile time |
+| `DiscriminatedProtocol`    | a tag field selects between fixed-length variants  |
+
+---
+
+## Running the Examples
+
+Install the package and dependencies first:
+
+```
+pip install -e ".[hdl]"
+```
+
+### Available examples
+
+| Example         | Protocol type            | Description                                              |
+| --------------- | ------------------------ | -------------------------------------------------------- |
+| `eth_ip`        | `SidebandProtocol`       | ETH+IP header parsing, UDP forwarding, broadcast routing |
+| `udp`           | `SidebandProtocol`       | UDP port router and range-based classifier               |
+| `mold_udp`      | `LengthPrefixedProtocol` | MoldUDP64 multi-message envelope parser                  |
+| `itch`          | `DiscriminatedProtocol`  | ITCH 5.0 full spec, 22 message types                     |
+| `hft_pipelined` | stacked                  | Full HFT stack: UDP + MoldUDP + ITCH chained             |
+
+Each example has a `generate_sv.py` and `generate_c.py`. Print output to stdout:
+
+```
+python examples/eth_ip/generate_sv.py
+```
+
+Write all variants to `examples/eth_ip/hdl/`:
+
+```
+python examples/eth_ip/generate_sv.py --all
+```
+
+### Tests
+
+Unit tests (no simulator required):
+
+```
+pytest tests/
+```
+
+Cocotb simulation tests (requires `iverilog` and `make`, venv must be active):
+
+| Example         | Make targets                                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `eth_ip`        | `test_eth_ip_32` `test_eth_ip_24` `test_eth_ip_udp_8` `test_eth_ip_udp_512` `test_eth_ip_route_broadcast_udp_32` |
+| `udp`           | `test_udp_port_router_8` `test_udp_classifier_64`                                                                |
+| `mold_udp`      | `test_mold_udp_8` `test_mold_udp_24` `test_mold_udp_32` `test_mold_udp_512` `test_mold_udp_all`                 |
+| `itch`          | `test_itch_8bit` `test_itch_32bit` `test_itch_64bit`                                                             |
+| `hft_pipelined` | `test_8bit` `test_64bit` `test_80bit`                                                                            |
+
+```
+make -C examples/eth_ip/hdl test_eth_ip_32
+```
+
+C parser tests (built and run via make):
+
+| Example         | Make target                                  |
+| --------------- | -------------------------------------------- |
+| `eth_ip`        | `test_eth_ip_forward_udp`                    |
+| `udp`           | `test_udp_port_router` `test_udp_classifier` |
+| `mold_udp`      | `test_mold_udp`                              |
+| `itch`          | `test_itch_parser`                           |
+| `hft_pipelined` | `test_hft_pipelined`                         |
+
+```
+make -C examples/eth_ip/c test_eth_ip_forward_udp
+```
+
+---
+
 ## Design Goals
 
 - Pure Python protocol definitions - no HDL knowledge required to describe a protocol
@@ -62,23 +169,6 @@ Protocol Definition          Protocol Source
   Generated Output
   (.sv, .vhd, .c/.h, .md)
 ```
-
----
-
-## AXI-Stream Definition
-
-All parsers consume and produce AXI-Stream with the following sideband signals:
-
-| Signal | Width          | Description                            |
-| ------ | -------------- | -------------------------------------- |
-| tdata  | data_width     | payload data                           |
-| tkeep  | data_width / 8 | byte lane enable (meaningful on tlast) |
-| tlast  | 1              | last beat of frame                     |
-| tuser  | 1 (default)    | error flag - set by parser on drop     |
-| tvalid | 1              | flow control (producer)                |
-| tready | 1              | flow control (consumer)                |
-
-Bus widths of 8, 32, and 64 bits are the primary targets.
 
 ---
 
@@ -138,29 +228,46 @@ Every `Drop*` action automatically generates a named counter register in the AXI
 
 ---
 
+## Output Backends
+
+| Backend                  | Output                       | Status  |
+| ------------------------ | ---------------------------- | ------- |
+| `SystemVerilogGenerator` | `.sv`                        | exists  |
+| `VHDLGenerator`          | `.vhd`                       | planned |
+| `CGenerator`             | `.c` / `.h`                  | exists  |
+| `MarkdownGenerator`      | `.md` protocol documentation | planned |
+
+Backends use Jinja2 templates stored in `generators/templates/`.
+Templates can be overridden per-project for custom output styles.
+
+---
+
 ## Protocol Sources
 
 Protocol definitions can be loaded from multiple sources via a common interface:
 
-| Source         | Description                                  |
-| -------------- | -------------------------------------------- |
-| `PythonSource` | Field definitions written directly in Python |
-| `XmlSource`    | SBE XML schema (fixprotocol.io format)       |
-| `DictSource`   | JSON / YAML / plain Python dict              |
+| Source         | Description                                  | Status  |
+| -------------- | -------------------------------------------- | ------- |
+| `PythonSource` | Field definitions written directly in Python | planned |
+| `XmlSource`    | SBE XML schema (fixprotocol.io format)       | planned |
+| `DictSource`   | JSON / YAML / plain Python dict              | planned |
 
 ---
 
-## Output Backends
+## AXI-Stream Definition
 
-| Backend                  | Output                       |
-| ------------------------ | ---------------------------- |
-| `SystemVerilogGenerator` | `.sv`                        |
-| `VHDLGenerator`          | `.vhd`                       |
-| `CGenerator`             | `.c` / `.h`                  |
-| `MarkdownGenerator`      | `.md` protocol documentation |
+All parsers consume and produce AXI-Stream with the following sideband signals:
 
-Backends use Jinja2 templates stored in `generators/templates/`.
-Templates can be overridden per-project for custom output styles.
+| Signal | Width          | Description                            |
+| ------ | -------------- | -------------------------------------- |
+| tdata  | data_width     | payload data                           |
+| tkeep  | data_width / 8 | byte lane enable (meaningful on tlast) |
+| tlast  | 1              | last beat of frame                     |
+| tuser  | 1 (default)    | error flag - set by parser on drop     |
+| tvalid | 1              | flow control (producer)                |
+| tready | 1              | flow control (consumer)                |
+
+Bus widths of 8, 32, and 64 bits are the primary targets.
 
 ---
 
@@ -213,22 +320,29 @@ Routing configuration lives in AXI-Lite registers written at boot time.
 ```
 pyhdlweaver/
   pyhdlweaver/
-    stream/                 AxisStream definition (tdata, tkeep, tlast, tuser)
+    stream/                  AxisStream definition (tdata, tkeep, tlast, tuser)
     protocols/
-      definitions/          Field and layout primitives
-      sources/              Protocol loaders (Python, XML, Dict)
-      *.py                  Protocol classes (Fixed, Discriminated, etc.)
-    actions/                Field action classes (Drop, Route, Capture, etc.)
+      definitions/           Field, BusLayout, BeatLayout, StreamLayout
+      sources/               PythonSource, XmlSource, DictSource  [not yet]
+      *.py                   Protocol classes (Fixed, Discriminated, etc.)
+    actions/                 Drop, Route, Capture, Length actions
     generators/
-      backends/             SystemVerilog, VHDL, C generator classes
-      templates/            Jinja2 .j2 template files
+      backends/
+        systemverilog/       SystemVerilog generator
+        c/                   C generator
+        vhdl/                VHDL generator  [not yet]
+      templates/             Jinja2 .j2 template files
+    data_packet.py           Packet data model
   tests/
-    protocols/              Tests for protocol definitions and actions
-    generators/             Tests for code generation output
+    protocols/               Protocol definition and action tests
+    generators/              Code generation output tests
   examples/
-    eth_ip/                 Ethernet + IPv4 parser example
-    sbe/                    SBE XML loader example
-  create_structure.py       Bootstrap script - creates this folder structure
+    eth_ip/                  Ethernet + IPv4 parser
+    udp/                     UDP parser
+    mold_udp/                MoldUDP parser
+    itch/                    ITCH 5.0 parser
+    hft_pipelined/           Full HFT stack pipelined parser
+    sbe/                     SBE XML loader  [not yet]
   README.md
   pyproject.toml
   setup.py
