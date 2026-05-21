@@ -1,5 +1,9 @@
 # pyhdlweaver
 
+[![Cocotb](https://github.com/jakobgross/pyhdlweaver/actions/workflows/cocotb.yml/badge.svg)](https://github.com/jakobgross/pyhdlweaver/actions/workflows/cocotb.yml)
+[![Lint](https://github.com/jakobgross/pyhdlweaver/actions/workflows/lint.yml/badge.svg)](https://github.com/jakobgross/pyhdlweaver/actions/workflows/lint.yml)
+[![Pytest](https://github.com/jakobgross/pyhdlweaver/actions/workflows/pytest.yml/badge.svg)](https://github.com/jakobgross/pyhdlweaver/actions/workflows/pytest.yml)
+
 Python HDL Protocol Weaver - generate synthesisable, readable HDL from structured protocol definitions.
 
 Designed for HFT FPGA stacks but generic enough for any protocol parsing use case.

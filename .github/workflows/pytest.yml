@@ -4,16 +4,20 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   pytest:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -23,12 +27,23 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev,hdl]"
 
+      - name: Create result directory
+        run: mkdir -p test-results/pytest
+
       - name: Run pytest
         run: pytest -q --junitxml=test-results/pytest/results.xml
 
+      - name: Publish pytest results
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v3
+        with:
+          name: Pytest Results
+          path: test-results/pytest/results.xml
+          reporter: python-xunit
+
       - name: Upload pytest results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-results
           path: test-results/pytest/results.xml
