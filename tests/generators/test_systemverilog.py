@@ -8,7 +8,7 @@ from pyhdlweaver.actions import DropOnMismatch, DropOnRegisterMismatch, RouteByR
 from pyhdlweaver.generators import GeneratedFile, SystemVerilogGenerator
 from pyhdlweaver.protocols import DiscriminatedProtocol, SidebandProtocol
 from pyhdlweaver.protocols.definitions import Field
-from pyhdlweaver.stream.axi_stream import STREAM_32, AxisStream
+from pyhdlweaver.stream.axi_stream import STREAM_8, STREAM_32, AxisStream
 
 
 def test_eth_ip_systemverilog_example_returns_generated_file():
@@ -238,7 +238,7 @@ def test_itch_generated_sv_has_variant_field_ports():
 
 def test_itch_generated_sv_captures_overlapping_fields_on_same_beat():
     # On an 8-bit bus, beat 11 is the first byte of the variant payload.
-    # Variant fields at the same offset get separate branches.
+    # Variant fields at the same offset share straight captures.
     generated = generate_itch_8bit()
 
     assert "11: begin" in generated.content
@@ -247,9 +247,51 @@ def test_itch_generated_sv_captures_overlapping_fields_on_same_beat():
     end_idx = content.index("            12: begin", idx)
     beat_11_block = content[idx:end_idx]
 
-    # Both fields captured conditionally on beat 11, each under its own variant keys.
     assert "event_code_reg[7:0]" in beat_11_block
     assert "order_reference_number_reg[63:56]" in beat_11_block
+    assert "case (message_type_reg)" not in beat_11_block
+
+
+def test_discriminated_generator_branches_only_same_name_different_locations():
+    disc_field = Field("kind", offset=0, width=8)
+    value_at_1 = Field("value", offset=1, width=8)
+    value_at_2 = Field("value", offset=2, width=8)
+    protocol = DiscriminatedProtocol(
+        name="same_name_locations",
+        discriminator=disc_field,
+        fields=[disc_field],
+        variants={1: [value_at_1], 2: [value_at_2]},
+        variant_length={1: 2, 2: 3},
+    )
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_8)
+
+    assert "logic [7:0] value_reg;" in generated.content
+    assert "1: begin" in generated.content
+    assert "case (discriminator_value_comb)" in generated.content
+    assert "8'h1: begin" in generated.content
+    assert "value_reg[7:0] <= s_axis_tdata[7:0];" in generated.content
+    assert "8'h2: begin" in generated.content
+
+
+def test_discriminated_generator_uses_current_discriminator_for_wide_branch():
+    disc_field = Field("kind", offset=0, width=8)
+    value_at_1 = Field("value", offset=1, width=8)
+    value_at_2 = Field("value", offset=2, width=8)
+    protocol = DiscriminatedProtocol(
+        name="same_name_wide",
+        discriminator=disc_field,
+        fields=[disc_field],
+        variants={1: [value_at_1], 2: [value_at_2]},
+        variant_length={1: 2, 2: 3},
+    )
+
+    generated = SystemVerilogGenerator().generate(protocol, STREAM_32)
+
+    assert "0: begin" in generated.content
+    assert "case (discriminator_value_comb)" in generated.content
+    assert "value_reg[7:0] <= s_axis_tdata[15:8];" in generated.content
+    assert "value_reg[7:0] <= s_axis_tdata[23:16];" in generated.content
 
 
 def test_itch_generated_sv_has_discriminated_fsm():

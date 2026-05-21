@@ -26,6 +26,12 @@ class _BeatEntry:
     variants: tuple[_VariantEntry, ...]
 
 
+@dataclass(frozen=True)
+class _VariantFieldGroup:
+    field: Field
+    keys: tuple[int, ...]
+
+
 class DiscriminatedSystemVerilogGenerator(SystemVerilogGenerator):
     """SV generator for DiscriminatedProtocol: variant-conditional field capture."""
 
@@ -99,20 +105,26 @@ class DiscriminatedSystemVerilogGenerator(SystemVerilogGenerator):
         layout: StreamLayout,
     ) -> list[_BeatEntry]:
         common_names = {f.name for f in protocol.fields}
+        name_locations: dict[str, set[tuple[int, int]]] = {}
+        variant_groups: dict[tuple[str, int, int], _VariantFieldGroup] = {}
 
-        # Variant keys per field.
-        field_to_keys: dict[str, list[int]] = {}
+        for field in protocol.fields:
+            name_locations.setdefault(field.name, set()).add((field.offset, field.width))
+
         for key, vfields in protocol.variants.items():
             for f in vfields:
-                if f.name not in common_names:
-                    field_to_keys.setdefault(f.name, []).append(key)
-
-        # Unique variant fields.
-        variant_fields: dict[str, Field] = {}
-        for vfields in protocol.variants.values():
-            for f in vfields:
-                if f.name not in common_names and f.name not in variant_fields:
-                    variant_fields[f.name] = f
+                if f.name in common_names:
+                    continue
+                name_locations.setdefault(f.name, set()).add((f.offset, f.width))
+                group_key = (f.name, f.offset, f.width)
+                existing = variant_groups.get(group_key)
+                if existing is None:
+                    variant_groups[group_key] = _VariantFieldGroup(field=f, keys=(key,))
+                else:
+                    variant_groups[group_key] = _VariantFieldGroup(
+                        field=existing.field,
+                        keys=tuple(sorted(existing.keys + (key,))),
+                    )
 
         # Common captures by beat.
         common_by_beat: dict[int, list[str]] = {}
@@ -120,24 +132,30 @@ class DiscriminatedSystemVerilogGenerator(SystemVerilogGenerator):
             for assignment, beat in _field_assignments(field, layout):
                 common_by_beat.setdefault(beat, []).append(assignment)
 
-        # One branch per discriminator value.
+        # Only same-name fields at different locations need discriminator branches.
         variant_by_beat: dict[int, dict[int, list[str]]] = {}
-        for fname, field in variant_fields.items():
-            keys = tuple(sorted(field_to_keys[fname]))
-            for assignment, beat in _field_assignments(field, layout):
-                for key in keys:
-                    variant_by_beat.setdefault(beat, {}).setdefault(key, []).append(assignment)
+        for group in variant_groups.values():
+            locations = name_locations[group.field.name]
+            for assignment, beat in _field_assignments(group.field, layout):
+                if len(locations) == 1:
+                    common_by_beat.setdefault(beat, []).append(assignment)
+                else:
+                    for key in group.keys:
+                        variant_by_beat.setdefault(beat, {}).setdefault(key, []).append(assignment)
 
         all_beats = sorted(set(list(common_by_beat) + list(variant_by_beat)))
         entries: list[_BeatEntry] = []
         for beat in all_beats:
             common = tuple(common_by_beat.get(beat, []))
             variants: list[_VariantEntry] = []
-            for key, assignments in variant_by_beat.get(beat, {}).items():
-                key_literals = (sv_int(protocol.discriminator.width, key),)
+            assignments_to_keys: dict[tuple[str, ...], list[int]] = {}
+            for key, assignments in sorted(variant_by_beat.get(beat, {}).items()):
+                assignments_to_keys.setdefault(tuple(assignments), []).append(key)
+            for assignments, keys in assignments_to_keys.items():
+                key_literals = tuple(sv_int(protocol.discriminator.width, key) for key in keys)
                 variants.append(_VariantEntry(
                     key_literals=key_literals,
-                    assignments=tuple(assignments),
+                    assignments=assignments,
                 ))
             entries.append(_BeatEntry(beat=beat, common=common, variants=tuple(variants)))
         return entries
@@ -145,12 +163,17 @@ class DiscriminatedSystemVerilogGenerator(SystemVerilogGenerator):
     @staticmethod
     def _collect_all_fields(protocol: DiscriminatedProtocol) -> list[Field]:
         all_fields = list(protocol.fields)
-        seen = {f.name for f in all_fields}
+        fields_by_name = {f.name: f for f in all_fields}
         for variant_fields in protocol.variants.values():
             for f in variant_fields:
-                if f.name not in seen:
+                existing = fields_by_name.get(f.name)
+                if existing is None:
                     all_fields.append(f)
-                    seen.add(f.name)
+                    fields_by_name[f.name] = f
+                elif existing.width != f.width:
+                    raise ValueError(
+                        f"{protocol.name}: field '{f.name}' has multiple widths"
+                    )
         return all_fields
 
 

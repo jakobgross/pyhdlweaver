@@ -98,7 +98,7 @@ always_ff @(posedge clk) begin
               {{ assignment }}
 {% endfor %}
 {% if entry.variants %}
-              case ({{ discriminator_name }}_reg)
+              case (discriminator_value_comb)
 {% for ventry in entry.variants %}
                 {{ ventry.key_literals | join(', ') }}: begin
 {% for assignment in ventry.assignments %}

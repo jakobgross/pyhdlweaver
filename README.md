@@ -299,6 +299,7 @@ pyhdlweaver/
 - [x] MoldUDP protocol definition
 - [x] ITCH 5.0 protocol definition (DiscriminatedProtocol)
 - [x] Stitch all (ETHIP + UDP + MoldUDP + ITCH) into a single SV file for a simple pipelined parser
+- [ ] Fix Case assignments in ITCH (same fields)
 - [ ] Full stack: Eth+IP+UDP+MoldUDP+ITCH generator (Do all the parsing in one parser for throughput and timing)
 - [ ] Broadcast splitter to DMA
 - [ ] cocotb integration tests with realistic packet captures

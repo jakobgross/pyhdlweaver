@@ -421,707 +421,288 @@ always_ff @(posedge clk) begin
               timestamp_reg[23:16] <= s_axis_tdata[7:0];
               timestamp_reg[15:8] <= s_axis_tdata[15:8];
               timestamp_reg[7:0] <= s_axis_tdata[23:16];
-              case (message_type_reg)
-                8'h53: begin
-                  event_code_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h48: begin
-                  stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h4a: begin
-                  stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h4b: begin
-                  stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h4e: begin
-                  stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h52: begin
-                  stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h59: begin
-                  stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h68: begin
-                  stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h4c: begin
-                  mpid_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h56: begin
-                  level_1_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h57: begin
-                  breached_level_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h41: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h43: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h44: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h45: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h46: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h58: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h51: begin
-                  cross_shares_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h42: begin
-                  broken_match_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  paired_shares_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              event_code_reg[7:0] <= s_axis_tdata[31:24];
+              stock_reg[63:56] <= s_axis_tdata[31:24];
+              mpid_reg[31:24] <= s_axis_tdata[31:24];
+              level_1_reg[63:56] <= s_axis_tdata[31:24];
+              breached_level_reg[7:0] <= s_axis_tdata[31:24];
+              order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
+              original_order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
+              cross_shares_reg[63:56] <= s_axis_tdata[31:24];
+              broken_match_number_reg[63:56] <= s_axis_tdata[31:24];
+              paired_shares_reg[63:56] <= s_axis_tdata[31:24];
             end
             3: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                  stock_reg[47:40] <= s_axis_tdata[15:8];
-                  stock_reg[39:32] <= s_axis_tdata[23:16];
-                  stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4a: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                  stock_reg[47:40] <= s_axis_tdata[15:8];
-                  stock_reg[39:32] <= s_axis_tdata[23:16];
-                  stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4b: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                  stock_reg[47:40] <= s_axis_tdata[15:8];
-                  stock_reg[39:32] <= s_axis_tdata[23:16];
-                  stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4e: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                  stock_reg[47:40] <= s_axis_tdata[15:8];
-                  stock_reg[39:32] <= s_axis_tdata[23:16];
-                  stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h52: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                  stock_reg[47:40] <= s_axis_tdata[15:8];
-                  stock_reg[39:32] <= s_axis_tdata[23:16];
-                  stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h59: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                  stock_reg[47:40] <= s_axis_tdata[15:8];
-                  stock_reg[39:32] <= s_axis_tdata[23:16];
-                  stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h68: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                  stock_reg[47:40] <= s_axis_tdata[15:8];
-                  stock_reg[39:32] <= s_axis_tdata[23:16];
-                  stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4c: begin
-                  mpid_reg[23:16] <= s_axis_tdata[7:0];
-                  mpid_reg[15:8] <= s_axis_tdata[15:8];
-                  mpid_reg[7:0] <= s_axis_tdata[23:16];
-                  participant_stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h56: begin
-                  level_1_reg[55:48] <= s_axis_tdata[7:0];
-                  level_1_reg[47:40] <= s_axis_tdata[15:8];
-                  level_1_reg[39:32] <= s_axis_tdata[23:16];
-                  level_1_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h41: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h43: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h44: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h45: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h46: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h58: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  original_order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  original_order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  original_order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h51: begin
-                  cross_shares_reg[55:48] <= s_axis_tdata[7:0];
-                  cross_shares_reg[47:40] <= s_axis_tdata[15:8];
-                  cross_shares_reg[39:32] <= s_axis_tdata[23:16];
-                  cross_shares_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h42: begin
-                  broken_match_number_reg[55:48] <= s_axis_tdata[7:0];
-                  broken_match_number_reg[47:40] <= s_axis_tdata[15:8];
-                  broken_match_number_reg[39:32] <= s_axis_tdata[23:16];
-                  broken_match_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  paired_shares_reg[55:48] <= s_axis_tdata[7:0];
-                  paired_shares_reg[47:40] <= s_axis_tdata[15:8];
-                  paired_shares_reg[39:32] <= s_axis_tdata[23:16];
-                  paired_shares_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              stock_reg[55:48] <= s_axis_tdata[7:0];
+              stock_reg[47:40] <= s_axis_tdata[15:8];
+              stock_reg[39:32] <= s_axis_tdata[23:16];
+              stock_reg[31:24] <= s_axis_tdata[31:24];
+              mpid_reg[23:16] <= s_axis_tdata[7:0];
+              mpid_reg[15:8] <= s_axis_tdata[15:8];
+              mpid_reg[7:0] <= s_axis_tdata[23:16];
+              participant_stock_reg[63:56] <= s_axis_tdata[31:24];
+              level_1_reg[55:48] <= s_axis_tdata[7:0];
+              level_1_reg[47:40] <= s_axis_tdata[15:8];
+              level_1_reg[39:32] <= s_axis_tdata[23:16];
+              level_1_reg[31:24] <= s_axis_tdata[31:24];
+              order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+              order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
+              order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
+              order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
+              original_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
+              original_order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
+              original_order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
+              cross_shares_reg[55:48] <= s_axis_tdata[7:0];
+              cross_shares_reg[47:40] <= s_axis_tdata[15:8];
+              cross_shares_reg[39:32] <= s_axis_tdata[23:16];
+              cross_shares_reg[31:24] <= s_axis_tdata[31:24];
+              broken_match_number_reg[55:48] <= s_axis_tdata[7:0];
+              broken_match_number_reg[47:40] <= s_axis_tdata[15:8];
+              broken_match_number_reg[39:32] <= s_axis_tdata[23:16];
+              broken_match_number_reg[31:24] <= s_axis_tdata[31:24];
+              paired_shares_reg[55:48] <= s_axis_tdata[7:0];
+              paired_shares_reg[47:40] <= s_axis_tdata[15:8];
+              paired_shares_reg[39:32] <= s_axis_tdata[23:16];
+              paired_shares_reg[31:24] <= s_axis_tdata[31:24];
             end
             4: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                  stock_reg[15:8] <= s_axis_tdata[15:8];
-                  stock_reg[7:0] <= s_axis_tdata[23:16];
-                  trading_state_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h4a: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                  stock_reg[15:8] <= s_axis_tdata[15:8];
-                  stock_reg[7:0] <= s_axis_tdata[23:16];
-                  auction_collar_reference_price_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4b: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                  stock_reg[15:8] <= s_axis_tdata[15:8];
-                  stock_reg[7:0] <= s_axis_tdata[23:16];
-                  ipo_quotation_release_time_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4e: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                  stock_reg[15:8] <= s_axis_tdata[15:8];
-                  stock_reg[7:0] <= s_axis_tdata[23:16];
-                  interest_flag_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h52: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                  stock_reg[15:8] <= s_axis_tdata[15:8];
-                  stock_reg[7:0] <= s_axis_tdata[23:16];
-                  market_category_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h59: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                  stock_reg[15:8] <= s_axis_tdata[15:8];
-                  stock_reg[7:0] <= s_axis_tdata[23:16];
-                  reg_sho_action_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h68: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                  stock_reg[15:8] <= s_axis_tdata[15:8];
-                  stock_reg[7:0] <= s_axis_tdata[23:16];
-                  market_code_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h4c: begin
-                  participant_stock_reg[55:48] <= s_axis_tdata[7:0];
-                  participant_stock_reg[47:40] <= s_axis_tdata[15:8];
-                  participant_stock_reg[39:32] <= s_axis_tdata[23:16];
-                  participant_stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h56: begin
-                  level_1_reg[23:16] <= s_axis_tdata[7:0];
-                  level_1_reg[15:8] <= s_axis_tdata[15:8];
-                  level_1_reg[7:0] <= s_axis_tdata[23:16];
-                  level_2_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h41: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h43: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  executed_shares_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h44: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h45: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  executed_shares_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h46: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h58: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  cancelled_shares_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  original_order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  original_order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  new_order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h51: begin
-                  cross_shares_reg[23:16] <= s_axis_tdata[7:0];
-                  cross_shares_reg[15:8] <= s_axis_tdata[15:8];
-                  cross_shares_reg[7:0] <= s_axis_tdata[23:16];
-                  cross_stock_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h42: begin
-                  broken_match_number_reg[23:16] <= s_axis_tdata[7:0];
-                  broken_match_number_reg[15:8] <= s_axis_tdata[15:8];
-                  broken_match_number_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h49: begin
-                  paired_shares_reg[23:16] <= s_axis_tdata[7:0];
-                  paired_shares_reg[15:8] <= s_axis_tdata[15:8];
-                  paired_shares_reg[7:0] <= s_axis_tdata[23:16];
-                  imbalance_shares_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              stock_reg[23:16] <= s_axis_tdata[7:0];
+              stock_reg[15:8] <= s_axis_tdata[15:8];
+              stock_reg[7:0] <= s_axis_tdata[23:16];
+              market_category_reg[7:0] <= s_axis_tdata[31:24];
+              trading_state_reg[7:0] <= s_axis_tdata[31:24];
+              reg_sho_action_reg[7:0] <= s_axis_tdata[31:24];
+              participant_stock_reg[55:48] <= s_axis_tdata[7:0];
+              participant_stock_reg[47:40] <= s_axis_tdata[15:8];
+              participant_stock_reg[39:32] <= s_axis_tdata[23:16];
+              participant_stock_reg[31:24] <= s_axis_tdata[31:24];
+              level_1_reg[23:16] <= s_axis_tdata[7:0];
+              level_1_reg[15:8] <= s_axis_tdata[15:8];
+              level_1_reg[7:0] <= s_axis_tdata[23:16];
+              level_2_reg[63:56] <= s_axis_tdata[31:24];
+              ipo_quotation_release_time_reg[31:24] <= s_axis_tdata[31:24];
+              auction_collar_reference_price_reg[31:24] <= s_axis_tdata[31:24];
+              market_code_reg[7:0] <= s_axis_tdata[31:24];
+              order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+              order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
+              order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
+              buy_sell_indicator_reg[7:0] <= s_axis_tdata[31:24];
+              executed_shares_reg[31:24] <= s_axis_tdata[31:24];
+              cancelled_shares_reg[31:24] <= s_axis_tdata[31:24];
+              original_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
+              original_order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
+              new_order_reference_number_reg[63:56] <= s_axis_tdata[31:24];
+              cross_shares_reg[23:16] <= s_axis_tdata[7:0];
+              cross_shares_reg[15:8] <= s_axis_tdata[15:8];
+              cross_shares_reg[7:0] <= s_axis_tdata[23:16];
+              cross_stock_reg[63:56] <= s_axis_tdata[31:24];
+              broken_match_number_reg[23:16] <= s_axis_tdata[7:0];
+              broken_match_number_reg[15:8] <= s_axis_tdata[15:8];
+              broken_match_number_reg[7:0] <= s_axis_tdata[23:16];
+              paired_shares_reg[23:16] <= s_axis_tdata[7:0];
+              paired_shares_reg[15:8] <= s_axis_tdata[15:8];
+              paired_shares_reg[7:0] <= s_axis_tdata[23:16];
+              imbalance_shares_reg[63:56] <= s_axis_tdata[31:24];
+              interest_flag_reg[7:0] <= s_axis_tdata[31:24];
             end
             5: begin
-              case (message_type_reg)
-                8'h52: begin
-                  financial_status_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                  round_lot_size_reg[31:24] <= s_axis_tdata[15:8];
-                  round_lot_size_reg[23:16] <= s_axis_tdata[23:16];
-                  round_lot_size_reg[15:8] <= s_axis_tdata[31:24];
-                end
-                8'h48: begin
-                  reserved_reg[7:0] <= s_axis_tdata[7:0];
-                  reason_reg[31:24] <= s_axis_tdata[15:8];
-                  reason_reg[23:16] <= s_axis_tdata[23:16];
-                  reason_reg[15:8] <= s_axis_tdata[31:24];
-                end
-                8'h4c: begin
-                  participant_stock_reg[23:16] <= s_axis_tdata[7:0];
-                  participant_stock_reg[15:8] <= s_axis_tdata[15:8];
-                  participant_stock_reg[7:0] <= s_axis_tdata[23:16];
-                  primary_market_maker_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h56: begin
-                  level_2_reg[55:48] <= s_axis_tdata[7:0];
-                  level_2_reg[47:40] <= s_axis_tdata[15:8];
-                  level_2_reg[39:32] <= s_axis_tdata[23:16];
-                  level_2_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4b: begin
-                  ipo_quotation_release_time_reg[23:16] <= s_axis_tdata[7:0];
-                  ipo_quotation_release_time_reg[15:8] <= s_axis_tdata[15:8];
-                  ipo_quotation_release_time_reg[7:0] <= s_axis_tdata[23:16];
-                  ipo_quotation_release_qualifier_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h4a: begin
-                  auction_collar_reference_price_reg[23:16] <= s_axis_tdata[7:0];
-                  auction_collar_reference_price_reg[15:8] <= s_axis_tdata[15:8];
-                  auction_collar_reference_price_reg[7:0] <= s_axis_tdata[23:16];
-                  upper_auction_collar_price_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h68: begin
-                  operational_halt_action_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  shares_reg[31:24] <= s_axis_tdata[7:0];
-                  shares_reg[23:16] <= s_axis_tdata[15:8];
-                  shares_reg[15:8] <= s_axis_tdata[23:16];
-                  shares_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h46: begin
-                  shares_reg[31:24] <= s_axis_tdata[7:0];
-                  shares_reg[23:16] <= s_axis_tdata[15:8];
-                  shares_reg[15:8] <= s_axis_tdata[23:16];
-                  shares_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  shares_reg[31:24] <= s_axis_tdata[7:0];
-                  shares_reg[23:16] <= s_axis_tdata[15:8];
-                  shares_reg[15:8] <= s_axis_tdata[23:16];
-                  shares_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h43: begin
-                  executed_shares_reg[23:16] <= s_axis_tdata[7:0];
-                  executed_shares_reg[15:8] <= s_axis_tdata[15:8];
-                  executed_shares_reg[7:0] <= s_axis_tdata[23:16];
-                  match_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h45: begin
-                  executed_shares_reg[23:16] <= s_axis_tdata[7:0];
-                  executed_shares_reg[15:8] <= s_axis_tdata[15:8];
-                  executed_shares_reg[7:0] <= s_axis_tdata[23:16];
-                  match_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h58: begin
-                  cancelled_shares_reg[23:16] <= s_axis_tdata[7:0];
-                  cancelled_shares_reg[15:8] <= s_axis_tdata[15:8];
-                  cancelled_shares_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                  new_order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
-                  new_order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
-                  new_order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h51: begin
-                  cross_stock_reg[55:48] <= s_axis_tdata[7:0];
-                  cross_stock_reg[47:40] <= s_axis_tdata[15:8];
-                  cross_stock_reg[39:32] <= s_axis_tdata[23:16];
-                  cross_stock_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[55:48] <= s_axis_tdata[7:0];
-                  imbalance_shares_reg[47:40] <= s_axis_tdata[15:8];
-                  imbalance_shares_reg[39:32] <= s_axis_tdata[23:16];
-                  imbalance_shares_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              financial_status_indicator_reg[7:0] <= s_axis_tdata[7:0];
+              round_lot_size_reg[31:24] <= s_axis_tdata[15:8];
+              round_lot_size_reg[23:16] <= s_axis_tdata[23:16];
+              round_lot_size_reg[15:8] <= s_axis_tdata[31:24];
+              reserved_reg[7:0] <= s_axis_tdata[7:0];
+              reason_reg[31:24] <= s_axis_tdata[15:8];
+              reason_reg[23:16] <= s_axis_tdata[23:16];
+              reason_reg[15:8] <= s_axis_tdata[31:24];
+              participant_stock_reg[23:16] <= s_axis_tdata[7:0];
+              participant_stock_reg[15:8] <= s_axis_tdata[15:8];
+              participant_stock_reg[7:0] <= s_axis_tdata[23:16];
+              primary_market_maker_reg[7:0] <= s_axis_tdata[31:24];
+              level_2_reg[55:48] <= s_axis_tdata[7:0];
+              level_2_reg[47:40] <= s_axis_tdata[15:8];
+              level_2_reg[39:32] <= s_axis_tdata[23:16];
+              level_2_reg[31:24] <= s_axis_tdata[31:24];
+              ipo_quotation_release_time_reg[23:16] <= s_axis_tdata[7:0];
+              ipo_quotation_release_time_reg[15:8] <= s_axis_tdata[15:8];
+              ipo_quotation_release_time_reg[7:0] <= s_axis_tdata[23:16];
+              ipo_quotation_release_qualifier_reg[7:0] <= s_axis_tdata[31:24];
+              auction_collar_reference_price_reg[23:16] <= s_axis_tdata[7:0];
+              auction_collar_reference_price_reg[15:8] <= s_axis_tdata[15:8];
+              auction_collar_reference_price_reg[7:0] <= s_axis_tdata[23:16];
+              upper_auction_collar_price_reg[31:24] <= s_axis_tdata[31:24];
+              operational_halt_action_reg[7:0] <= s_axis_tdata[7:0];
+              shares_reg[31:24] <= s_axis_tdata[7:0];
+              shares_reg[23:16] <= s_axis_tdata[15:8];
+              shares_reg[15:8] <= s_axis_tdata[23:16];
+              shares_reg[7:0] <= s_axis_tdata[31:24];
+              executed_shares_reg[23:16] <= s_axis_tdata[7:0];
+              executed_shares_reg[15:8] <= s_axis_tdata[15:8];
+              executed_shares_reg[7:0] <= s_axis_tdata[23:16];
+              match_number_reg[63:56] <= s_axis_tdata[31:24];
+              cancelled_shares_reg[23:16] <= s_axis_tdata[7:0];
+              cancelled_shares_reg[15:8] <= s_axis_tdata[15:8];
+              cancelled_shares_reg[7:0] <= s_axis_tdata[23:16];
+              new_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[47:40] <= s_axis_tdata[15:8];
+              new_order_reference_number_reg[39:32] <= s_axis_tdata[23:16];
+              new_order_reference_number_reg[31:24] <= s_axis_tdata[31:24];
+              cross_stock_reg[55:48] <= s_axis_tdata[7:0];
+              cross_stock_reg[47:40] <= s_axis_tdata[15:8];
+              cross_stock_reg[39:32] <= s_axis_tdata[23:16];
+              cross_stock_reg[31:24] <= s_axis_tdata[31:24];
+              imbalance_shares_reg[55:48] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[47:40] <= s_axis_tdata[15:8];
+              imbalance_shares_reg[39:32] <= s_axis_tdata[23:16];
+              imbalance_shares_reg[31:24] <= s_axis_tdata[31:24];
             end
             6: begin
-              case (message_type_reg)
-                8'h52: begin
-                  round_lot_size_reg[7:0] <= s_axis_tdata[7:0];
-                  round_lots_only_reg[7:0] <= s_axis_tdata[15:8];
-                  issue_classification_reg[7:0] <= s_axis_tdata[23:16];
-                  issue_sub_type_reg[15:8] <= s_axis_tdata[31:24];
-                end
-                8'h48: begin
-                  reason_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  market_maker_mode_reg[7:0] <= s_axis_tdata[7:0];
-                  market_participant_state_reg[7:0] <= s_axis_tdata[15:8];
-                end
-                8'h56: begin
-                  level_2_reg[23:16] <= s_axis_tdata[7:0];
-                  level_2_reg[15:8] <= s_axis_tdata[15:8];
-                  level_2_reg[7:0] <= s_axis_tdata[23:16];
-                  level_3_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h4b: begin
-                  ipo_price_reg[31:24] <= s_axis_tdata[7:0];
-                  ipo_price_reg[23:16] <= s_axis_tdata[15:8];
-                  ipo_price_reg[15:8] <= s_axis_tdata[23:16];
-                  ipo_price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h4a: begin
-                  upper_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
-                  upper_auction_collar_price_reg[15:8] <= s_axis_tdata[15:8];
-                  upper_auction_collar_price_reg[7:0] <= s_axis_tdata[23:16];
-                  lower_auction_collar_price_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h41: begin
-                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
-                  order_stock_reg[55:48] <= s_axis_tdata[15:8];
-                  order_stock_reg[47:40] <= s_axis_tdata[23:16];
-                  order_stock_reg[39:32] <= s_axis_tdata[31:24];
-                end
-                8'h46: begin
-                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
-                  order_stock_reg[55:48] <= s_axis_tdata[15:8];
-                  order_stock_reg[47:40] <= s_axis_tdata[23:16];
-                  order_stock_reg[39:32] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
-                  order_stock_reg[55:48] <= s_axis_tdata[15:8];
-                  order_stock_reg[47:40] <= s_axis_tdata[23:16];
-                  order_stock_reg[39:32] <= s_axis_tdata[31:24];
-                end
-                8'h43: begin
-                  match_number_reg[55:48] <= s_axis_tdata[7:0];
-                  match_number_reg[47:40] <= s_axis_tdata[15:8];
-                  match_number_reg[39:32] <= s_axis_tdata[23:16];
-                  match_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h45: begin
-                  match_number_reg[55:48] <= s_axis_tdata[7:0];
-                  match_number_reg[47:40] <= s_axis_tdata[15:8];
-                  match_number_reg[39:32] <= s_axis_tdata[23:16];
-                  match_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                  new_order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
-                  new_order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
-                  replace_shares_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h51: begin
-                  cross_stock_reg[23:16] <= s_axis_tdata[7:0];
-                  cross_stock_reg[15:8] <= s_axis_tdata[15:8];
-                  cross_stock_reg[7:0] <= s_axis_tdata[23:16];
-                  cross_price_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[23:16] <= s_axis_tdata[7:0];
-                  imbalance_shares_reg[15:8] <= s_axis_tdata[15:8];
-                  imbalance_shares_reg[7:0] <= s_axis_tdata[23:16];
-                  imbalance_direction_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              round_lot_size_reg[7:0] <= s_axis_tdata[7:0];
+              round_lots_only_reg[7:0] <= s_axis_tdata[15:8];
+              issue_classification_reg[7:0] <= s_axis_tdata[23:16];
+              issue_sub_type_reg[15:8] <= s_axis_tdata[31:24];
+              reason_reg[7:0] <= s_axis_tdata[7:0];
+              market_maker_mode_reg[7:0] <= s_axis_tdata[7:0];
+              market_participant_state_reg[7:0] <= s_axis_tdata[15:8];
+              level_2_reg[23:16] <= s_axis_tdata[7:0];
+              level_2_reg[15:8] <= s_axis_tdata[15:8];
+              level_2_reg[7:0] <= s_axis_tdata[23:16];
+              level_3_reg[63:56] <= s_axis_tdata[31:24];
+              ipo_price_reg[31:24] <= s_axis_tdata[7:0];
+              ipo_price_reg[23:16] <= s_axis_tdata[15:8];
+              ipo_price_reg[15:8] <= s_axis_tdata[23:16];
+              ipo_price_reg[7:0] <= s_axis_tdata[31:24];
+              upper_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
+              upper_auction_collar_price_reg[15:8] <= s_axis_tdata[15:8];
+              upper_auction_collar_price_reg[7:0] <= s_axis_tdata[23:16];
+              lower_auction_collar_price_reg[31:24] <= s_axis_tdata[31:24];
+              order_stock_reg[63:56] <= s_axis_tdata[7:0];
+              order_stock_reg[55:48] <= s_axis_tdata[15:8];
+              order_stock_reg[47:40] <= s_axis_tdata[23:16];
+              order_stock_reg[39:32] <= s_axis_tdata[31:24];
+              match_number_reg[55:48] <= s_axis_tdata[7:0];
+              match_number_reg[47:40] <= s_axis_tdata[15:8];
+              match_number_reg[39:32] <= s_axis_tdata[23:16];
+              match_number_reg[31:24] <= s_axis_tdata[31:24];
+              new_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[15:8] <= s_axis_tdata[15:8];
+              new_order_reference_number_reg[7:0] <= s_axis_tdata[23:16];
+              replace_shares_reg[31:24] <= s_axis_tdata[31:24];
+              cross_stock_reg[23:16] <= s_axis_tdata[7:0];
+              cross_stock_reg[15:8] <= s_axis_tdata[15:8];
+              cross_stock_reg[7:0] <= s_axis_tdata[23:16];
+              cross_price_reg[31:24] <= s_axis_tdata[31:24];
+              imbalance_shares_reg[23:16] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[15:8] <= s_axis_tdata[15:8];
+              imbalance_shares_reg[7:0] <= s_axis_tdata[23:16];
+              imbalance_direction_reg[7:0] <= s_axis_tdata[31:24];
             end
             7: begin
-              case (message_type_reg)
-                8'h52: begin
-                  issue_sub_type_reg[7:0] <= s_axis_tdata[7:0];
-                  authenticity_reg[7:0] <= s_axis_tdata[15:8];
-                  short_sale_threshold_indicator_reg[7:0] <= s_axis_tdata[23:16];
-                  ipo_flag_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h56: begin
-                  level_3_reg[55:48] <= s_axis_tdata[7:0];
-                  level_3_reg[47:40] <= s_axis_tdata[15:8];
-                  level_3_reg[39:32] <= s_axis_tdata[23:16];
-                  level_3_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h4a: begin
-                  lower_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
-                  lower_auction_collar_price_reg[15:8] <= s_axis_tdata[15:8];
-                  lower_auction_collar_price_reg[7:0] <= s_axis_tdata[23:16];
-                  auction_collar_extension_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h41: begin
-                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
-                  order_stock_reg[23:16] <= s_axis_tdata[15:8];
-                  order_stock_reg[15:8] <= s_axis_tdata[23:16];
-                  order_stock_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h46: begin
-                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
-                  order_stock_reg[23:16] <= s_axis_tdata[15:8];
-                  order_stock_reg[15:8] <= s_axis_tdata[23:16];
-                  order_stock_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
-                  order_stock_reg[23:16] <= s_axis_tdata[15:8];
-                  order_stock_reg[15:8] <= s_axis_tdata[23:16];
-                  order_stock_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h43: begin
-                  match_number_reg[23:16] <= s_axis_tdata[7:0];
-                  match_number_reg[15:8] <= s_axis_tdata[15:8];
-                  match_number_reg[7:0] <= s_axis_tdata[23:16];
-                  printable_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h45: begin
-                  match_number_reg[23:16] <= s_axis_tdata[7:0];
-                  match_number_reg[15:8] <= s_axis_tdata[15:8];
-                  match_number_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h55: begin
-                  replace_shares_reg[23:16] <= s_axis_tdata[7:0];
-                  replace_shares_reg[15:8] <= s_axis_tdata[15:8];
-                  replace_shares_reg[7:0] <= s_axis_tdata[23:16];
-                  replace_price_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h51: begin
-                  cross_price_reg[23:16] <= s_axis_tdata[7:0];
-                  cross_price_reg[15:8] <= s_axis_tdata[15:8];
-                  cross_price_reg[7:0] <= s_axis_tdata[23:16];
-                  cross_match_number_reg[63:56] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  noii_stock_reg[63:56] <= s_axis_tdata[7:0];
-                  noii_stock_reg[55:48] <= s_axis_tdata[15:8];
-                  noii_stock_reg[47:40] <= s_axis_tdata[23:16];
-                  noii_stock_reg[39:32] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              issue_sub_type_reg[7:0] <= s_axis_tdata[7:0];
+              authenticity_reg[7:0] <= s_axis_tdata[15:8];
+              short_sale_threshold_indicator_reg[7:0] <= s_axis_tdata[23:16];
+              ipo_flag_reg[7:0] <= s_axis_tdata[31:24];
+              level_3_reg[55:48] <= s_axis_tdata[7:0];
+              level_3_reg[47:40] <= s_axis_tdata[15:8];
+              level_3_reg[39:32] <= s_axis_tdata[23:16];
+              level_3_reg[31:24] <= s_axis_tdata[31:24];
+              lower_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
+              lower_auction_collar_price_reg[15:8] <= s_axis_tdata[15:8];
+              lower_auction_collar_price_reg[7:0] <= s_axis_tdata[23:16];
+              auction_collar_extension_reg[31:24] <= s_axis_tdata[31:24];
+              order_stock_reg[31:24] <= s_axis_tdata[7:0];
+              order_stock_reg[23:16] <= s_axis_tdata[15:8];
+              order_stock_reg[15:8] <= s_axis_tdata[23:16];
+              order_stock_reg[7:0] <= s_axis_tdata[31:24];
+              match_number_reg[23:16] <= s_axis_tdata[7:0];
+              match_number_reg[15:8] <= s_axis_tdata[15:8];
+              match_number_reg[7:0] <= s_axis_tdata[23:16];
+              printable_reg[7:0] <= s_axis_tdata[31:24];
+              replace_shares_reg[23:16] <= s_axis_tdata[7:0];
+              replace_shares_reg[15:8] <= s_axis_tdata[15:8];
+              replace_shares_reg[7:0] <= s_axis_tdata[23:16];
+              replace_price_reg[31:24] <= s_axis_tdata[31:24];
+              cross_price_reg[23:16] <= s_axis_tdata[7:0];
+              cross_price_reg[15:8] <= s_axis_tdata[15:8];
+              cross_price_reg[7:0] <= s_axis_tdata[23:16];
+              cross_match_number_reg[63:56] <= s_axis_tdata[31:24];
+              noii_stock_reg[63:56] <= s_axis_tdata[7:0];
+              noii_stock_reg[55:48] <= s_axis_tdata[15:8];
+              noii_stock_reg[47:40] <= s_axis_tdata[23:16];
+              noii_stock_reg[39:32] <= s_axis_tdata[31:24];
             end
             8: begin
-              case (message_type_reg)
-                8'h52: begin
-                  luld_reference_price_tier_reg[7:0] <= s_axis_tdata[7:0];
-                  etp_flag_reg[7:0] <= s_axis_tdata[15:8];
-                  etp_leverage_factor_reg[31:24] <= s_axis_tdata[23:16];
-                  etp_leverage_factor_reg[23:16] <= s_axis_tdata[31:24];
-                end
-                8'h56: begin
-                  level_3_reg[23:16] <= s_axis_tdata[7:0];
-                  level_3_reg[15:8] <= s_axis_tdata[15:8];
-                  level_3_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h4a: begin
-                  auction_collar_extension_reg[23:16] <= s_axis_tdata[7:0];
-                  auction_collar_extension_reg[15:8] <= s_axis_tdata[15:8];
-                  auction_collar_extension_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h41: begin
-                  price_reg[31:24] <= s_axis_tdata[7:0];
-                  price_reg[23:16] <= s_axis_tdata[15:8];
-                  price_reg[15:8] <= s_axis_tdata[23:16];
-                  price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h46: begin
-                  price_reg[31:24] <= s_axis_tdata[7:0];
-                  price_reg[23:16] <= s_axis_tdata[15:8];
-                  price_reg[15:8] <= s_axis_tdata[23:16];
-                  price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  price_reg[31:24] <= s_axis_tdata[7:0];
-                  price_reg[23:16] <= s_axis_tdata[15:8];
-                  price_reg[15:8] <= s_axis_tdata[23:16];
-                  price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h43: begin
-                  execution_price_reg[31:24] <= s_axis_tdata[7:0];
-                  execution_price_reg[23:16] <= s_axis_tdata[15:8];
-                  execution_price_reg[15:8] <= s_axis_tdata[23:16];
-                  execution_price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h55: begin
-                  replace_price_reg[23:16] <= s_axis_tdata[7:0];
-                  replace_price_reg[15:8] <= s_axis_tdata[15:8];
-                  replace_price_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h51: begin
-                  cross_match_number_reg[55:48] <= s_axis_tdata[7:0];
-                  cross_match_number_reg[47:40] <= s_axis_tdata[15:8];
-                  cross_match_number_reg[39:32] <= s_axis_tdata[23:16];
-                  cross_match_number_reg[31:24] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  noii_stock_reg[31:24] <= s_axis_tdata[7:0];
-                  noii_stock_reg[23:16] <= s_axis_tdata[15:8];
-                  noii_stock_reg[15:8] <= s_axis_tdata[23:16];
-                  noii_stock_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              luld_reference_price_tier_reg[7:0] <= s_axis_tdata[7:0];
+              etp_flag_reg[7:0] <= s_axis_tdata[15:8];
+              etp_leverage_factor_reg[31:24] <= s_axis_tdata[23:16];
+              etp_leverage_factor_reg[23:16] <= s_axis_tdata[31:24];
+              level_3_reg[23:16] <= s_axis_tdata[7:0];
+              level_3_reg[15:8] <= s_axis_tdata[15:8];
+              level_3_reg[7:0] <= s_axis_tdata[23:16];
+              auction_collar_extension_reg[23:16] <= s_axis_tdata[7:0];
+              auction_collar_extension_reg[15:8] <= s_axis_tdata[15:8];
+              auction_collar_extension_reg[7:0] <= s_axis_tdata[23:16];
+              price_reg[31:24] <= s_axis_tdata[7:0];
+              price_reg[23:16] <= s_axis_tdata[15:8];
+              price_reg[15:8] <= s_axis_tdata[23:16];
+              price_reg[7:0] <= s_axis_tdata[31:24];
+              execution_price_reg[31:24] <= s_axis_tdata[7:0];
+              execution_price_reg[23:16] <= s_axis_tdata[15:8];
+              execution_price_reg[15:8] <= s_axis_tdata[23:16];
+              execution_price_reg[7:0] <= s_axis_tdata[31:24];
+              replace_price_reg[23:16] <= s_axis_tdata[7:0];
+              replace_price_reg[15:8] <= s_axis_tdata[15:8];
+              replace_price_reg[7:0] <= s_axis_tdata[23:16];
+              cross_match_number_reg[55:48] <= s_axis_tdata[7:0];
+              cross_match_number_reg[47:40] <= s_axis_tdata[15:8];
+              cross_match_number_reg[39:32] <= s_axis_tdata[23:16];
+              cross_match_number_reg[31:24] <= s_axis_tdata[31:24];
+              noii_stock_reg[31:24] <= s_axis_tdata[7:0];
+              noii_stock_reg[23:16] <= s_axis_tdata[15:8];
+              noii_stock_reg[15:8] <= s_axis_tdata[23:16];
+              noii_stock_reg[7:0] <= s_axis_tdata[31:24];
             end
             9: begin
-              case (message_type_reg)
-                8'h52: begin
-                  etp_leverage_factor_reg[15:8] <= s_axis_tdata[7:0];
-                  etp_leverage_factor_reg[7:0] <= s_axis_tdata[15:8];
-                  inverse_indicator_reg[7:0] <= s_axis_tdata[23:16];
-                end
-                8'h46: begin
-                  attribution_reg[31:24] <= s_axis_tdata[7:0];
-                  attribution_reg[23:16] <= s_axis_tdata[15:8];
-                  attribution_reg[15:8] <= s_axis_tdata[23:16];
-                  attribution_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h50: begin
-                  trade_match_number_reg[63:56] <= s_axis_tdata[7:0];
-                  trade_match_number_reg[55:48] <= s_axis_tdata[15:8];
-                  trade_match_number_reg[47:40] <= s_axis_tdata[23:16];
-                  trade_match_number_reg[39:32] <= s_axis_tdata[31:24];
-                end
-                8'h51: begin
-                  cross_match_number_reg[23:16] <= s_axis_tdata[7:0];
-                  cross_match_number_reg[15:8] <= s_axis_tdata[15:8];
-                  cross_match_number_reg[7:0] <= s_axis_tdata[23:16];
-                  cross_type_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  far_price_reg[31:24] <= s_axis_tdata[7:0];
-                  far_price_reg[23:16] <= s_axis_tdata[15:8];
-                  far_price_reg[15:8] <= s_axis_tdata[23:16];
-                  far_price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              etp_leverage_factor_reg[15:8] <= s_axis_tdata[7:0];
+              etp_leverage_factor_reg[7:0] <= s_axis_tdata[15:8];
+              inverse_indicator_reg[7:0] <= s_axis_tdata[23:16];
+              attribution_reg[31:24] <= s_axis_tdata[7:0];
+              attribution_reg[23:16] <= s_axis_tdata[15:8];
+              attribution_reg[15:8] <= s_axis_tdata[23:16];
+              attribution_reg[7:0] <= s_axis_tdata[31:24];
+              trade_match_number_reg[63:56] <= s_axis_tdata[7:0];
+              trade_match_number_reg[55:48] <= s_axis_tdata[15:8];
+              trade_match_number_reg[47:40] <= s_axis_tdata[23:16];
+              trade_match_number_reg[39:32] <= s_axis_tdata[31:24];
+              cross_match_number_reg[23:16] <= s_axis_tdata[7:0];
+              cross_match_number_reg[15:8] <= s_axis_tdata[15:8];
+              cross_match_number_reg[7:0] <= s_axis_tdata[23:16];
+              cross_type_reg[7:0] <= s_axis_tdata[31:24];
+              far_price_reg[31:24] <= s_axis_tdata[7:0];
+              far_price_reg[23:16] <= s_axis_tdata[15:8];
+              far_price_reg[15:8] <= s_axis_tdata[23:16];
+              far_price_reg[7:0] <= s_axis_tdata[31:24];
             end
             10: begin
-              case (message_type_reg)
-                8'h50: begin
-                  trade_match_number_reg[31:24] <= s_axis_tdata[7:0];
-                  trade_match_number_reg[23:16] <= s_axis_tdata[15:8];
-                  trade_match_number_reg[15:8] <= s_axis_tdata[23:16];
-                  trade_match_number_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                8'h49: begin
-                  near_price_reg[31:24] <= s_axis_tdata[7:0];
-                  near_price_reg[23:16] <= s_axis_tdata[15:8];
-                  near_price_reg[15:8] <= s_axis_tdata[23:16];
-                  near_price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              trade_match_number_reg[31:24] <= s_axis_tdata[7:0];
+              trade_match_number_reg[23:16] <= s_axis_tdata[15:8];
+              trade_match_number_reg[15:8] <= s_axis_tdata[23:16];
+              trade_match_number_reg[7:0] <= s_axis_tdata[31:24];
+              near_price_reg[31:24] <= s_axis_tdata[7:0];
+              near_price_reg[23:16] <= s_axis_tdata[15:8];
+              near_price_reg[15:8] <= s_axis_tdata[23:16];
+              near_price_reg[7:0] <= s_axis_tdata[31:24];
             end
             11: begin
-              case (message_type_reg)
-                8'h49: begin
-                  current_reference_price_reg[31:24] <= s_axis_tdata[7:0];
-                  current_reference_price_reg[23:16] <= s_axis_tdata[15:8];
-                  current_reference_price_reg[15:8] <= s_axis_tdata[23:16];
-                  current_reference_price_reg[7:0] <= s_axis_tdata[31:24];
-                end
-                default: ;
-              endcase
+              current_reference_price_reg[31:24] <= s_axis_tdata[7:0];
+              current_reference_price_reg[23:16] <= s_axis_tdata[15:8];
+              current_reference_price_reg[15:8] <= s_axis_tdata[23:16];
+              current_reference_price_reg[7:0] <= s_axis_tdata[31:24];
             end
             12: begin
-              case (message_type_reg)
-                8'h49: begin
-                  noii_cross_type_reg[7:0] <= s_axis_tdata[7:0];
-                  price_variation_indicator_reg[7:0] <= s_axis_tdata[15:8];
-                end
-                default: ;
-              endcase
+              noii_cross_type_reg[7:0] <= s_axis_tdata[7:0];
+              price_variation_indicator_reg[7:0] <= s_axis_tdata[15:8];
             end
             default: ;
           endcase

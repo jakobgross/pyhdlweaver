@@ -439,1411 +439,344 @@ always_ff @(posedge clk) begin
               timestamp_reg[7:0] <= s_axis_tdata[7:0];
             end
             11: begin
-              case (message_type_reg)
-                8'h53: begin
-                  event_code_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h48: begin
-                  stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  mpid_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h57: begin
-                  breached_level_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              event_code_reg[7:0] <= s_axis_tdata[7:0];
+              stock_reg[63:56] <= s_axis_tdata[7:0];
+              mpid_reg[31:24] <= s_axis_tdata[7:0];
+              level_1_reg[63:56] <= s_axis_tdata[7:0];
+              breached_level_reg[7:0] <= s_axis_tdata[7:0];
+              order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+              cross_shares_reg[63:56] <= s_axis_tdata[7:0];
+              broken_match_number_reg[63:56] <= s_axis_tdata[7:0];
+              paired_shares_reg[63:56] <= s_axis_tdata[7:0];
             end
             12: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  mpid_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              stock_reg[55:48] <= s_axis_tdata[7:0];
+              mpid_reg[23:16] <= s_axis_tdata[7:0];
+              level_1_reg[55:48] <= s_axis_tdata[7:0];
+              order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+              cross_shares_reg[55:48] <= s_axis_tdata[7:0];
+              broken_match_number_reg[55:48] <= s_axis_tdata[7:0];
+              paired_shares_reg[55:48] <= s_axis_tdata[7:0];
             end
             13: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  mpid_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              stock_reg[47:40] <= s_axis_tdata[7:0];
+              mpid_reg[15:8] <= s_axis_tdata[7:0];
+              level_1_reg[47:40] <= s_axis_tdata[7:0];
+              order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+              cross_shares_reg[47:40] <= s_axis_tdata[7:0];
+              broken_match_number_reg[47:40] <= s_axis_tdata[7:0];
+              paired_shares_reg[47:40] <= s_axis_tdata[7:0];
             end
             14: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  mpid_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              stock_reg[39:32] <= s_axis_tdata[7:0];
+              mpid_reg[7:0] <= s_axis_tdata[7:0];
+              level_1_reg[39:32] <= s_axis_tdata[7:0];
+              order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+              cross_shares_reg[39:32] <= s_axis_tdata[7:0];
+              broken_match_number_reg[39:32] <= s_axis_tdata[7:0];
+              paired_shares_reg[39:32] <= s_axis_tdata[7:0];
             end
             15: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              stock_reg[31:24] <= s_axis_tdata[7:0];
+              participant_stock_reg[63:56] <= s_axis_tdata[7:0];
+              level_1_reg[31:24] <= s_axis_tdata[7:0];
+              order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+              cross_shares_reg[31:24] <= s_axis_tdata[7:0];
+              broken_match_number_reg[31:24] <= s_axis_tdata[7:0];
+              paired_shares_reg[31:24] <= s_axis_tdata[7:0];
             end
             16: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              stock_reg[23:16] <= s_axis_tdata[7:0];
+              participant_stock_reg[55:48] <= s_axis_tdata[7:0];
+              level_1_reg[23:16] <= s_axis_tdata[7:0];
+              order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+              cross_shares_reg[23:16] <= s_axis_tdata[7:0];
+              broken_match_number_reg[23:16] <= s_axis_tdata[7:0];
+              paired_shares_reg[23:16] <= s_axis_tdata[7:0];
             end
             17: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              stock_reg[15:8] <= s_axis_tdata[7:0];
+              participant_stock_reg[47:40] <= s_axis_tdata[7:0];
+              level_1_reg[15:8] <= s_axis_tdata[7:0];
+              order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+              cross_shares_reg[15:8] <= s_axis_tdata[7:0];
+              broken_match_number_reg[15:8] <= s_axis_tdata[7:0];
+              paired_shares_reg[15:8] <= s_axis_tdata[7:0];
             end
             18: begin
-              case (message_type_reg)
-                8'h48: begin
-                  stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h52: begin
-                  stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_1_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h44: begin
-                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  original_order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h42: begin
-                  broken_match_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  paired_shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              stock_reg[7:0] <= s_axis_tdata[7:0];
+              participant_stock_reg[39:32] <= s_axis_tdata[7:0];
+              level_1_reg[7:0] <= s_axis_tdata[7:0];
+              order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+              original_order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+              cross_shares_reg[7:0] <= s_axis_tdata[7:0];
+              broken_match_number_reg[7:0] <= s_axis_tdata[7:0];
+              paired_shares_reg[7:0] <= s_axis_tdata[7:0];
             end
             19: begin
-              case (message_type_reg)
-                8'h52: begin
-                  market_category_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h48: begin
-                  trading_state_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h59: begin
-                  reg_sho_action_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_quotation_release_time_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_reference_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  market_code_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  buy_sell_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  executed_shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  executed_shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  cancelled_shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h4e: begin
-                  interest_flag_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              market_category_reg[7:0] <= s_axis_tdata[7:0];
+              trading_state_reg[7:0] <= s_axis_tdata[7:0];
+              reg_sho_action_reg[7:0] <= s_axis_tdata[7:0];
+              participant_stock_reg[31:24] <= s_axis_tdata[7:0];
+              level_2_reg[63:56] <= s_axis_tdata[7:0];
+              ipo_quotation_release_time_reg[31:24] <= s_axis_tdata[7:0];
+              auction_collar_reference_price_reg[31:24] <= s_axis_tdata[7:0];
+              market_code_reg[7:0] <= s_axis_tdata[7:0];
+              buy_sell_indicator_reg[7:0] <= s_axis_tdata[7:0];
+              executed_shares_reg[31:24] <= s_axis_tdata[7:0];
+              cancelled_shares_reg[31:24] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[63:56] <= s_axis_tdata[7:0];
+              cross_stock_reg[63:56] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[63:56] <= s_axis_tdata[7:0];
+              interest_flag_reg[7:0] <= s_axis_tdata[7:0];
             end
             20: begin
-              case (message_type_reg)
-                8'h52: begin
-                  financial_status_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h48: begin
-                  reserved_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_quotation_release_time_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_reference_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h68: begin
-                  operational_halt_action_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  executed_shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  executed_shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  cancelled_shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              financial_status_indicator_reg[7:0] <= s_axis_tdata[7:0];
+              reserved_reg[7:0] <= s_axis_tdata[7:0];
+              participant_stock_reg[23:16] <= s_axis_tdata[7:0];
+              level_2_reg[55:48] <= s_axis_tdata[7:0];
+              ipo_quotation_release_time_reg[23:16] <= s_axis_tdata[7:0];
+              auction_collar_reference_price_reg[23:16] <= s_axis_tdata[7:0];
+              operational_halt_action_reg[7:0] <= s_axis_tdata[7:0];
+              shares_reg[31:24] <= s_axis_tdata[7:0];
+              executed_shares_reg[23:16] <= s_axis_tdata[7:0];
+              cancelled_shares_reg[23:16] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[55:48] <= s_axis_tdata[7:0];
+              cross_stock_reg[55:48] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[55:48] <= s_axis_tdata[7:0];
             end
             21: begin
-              case (message_type_reg)
-                8'h52: begin
-                  round_lot_size_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h48: begin
-                  reason_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_quotation_release_time_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_reference_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  executed_shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  executed_shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  cancelled_shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              round_lot_size_reg[31:24] <= s_axis_tdata[7:0];
+              reason_reg[31:24] <= s_axis_tdata[7:0];
+              participant_stock_reg[15:8] <= s_axis_tdata[7:0];
+              level_2_reg[47:40] <= s_axis_tdata[7:0];
+              ipo_quotation_release_time_reg[15:8] <= s_axis_tdata[7:0];
+              auction_collar_reference_price_reg[15:8] <= s_axis_tdata[7:0];
+              shares_reg[23:16] <= s_axis_tdata[7:0];
+              executed_shares_reg[15:8] <= s_axis_tdata[7:0];
+              cancelled_shares_reg[15:8] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[47:40] <= s_axis_tdata[7:0];
+              cross_stock_reg[47:40] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[47:40] <= s_axis_tdata[7:0];
             end
             22: begin
-              case (message_type_reg)
-                8'h52: begin
-                  round_lot_size_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h48: begin
-                  reason_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  participant_stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_quotation_release_time_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_reference_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  executed_shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  executed_shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h58: begin
-                  cancelled_shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              round_lot_size_reg[23:16] <= s_axis_tdata[7:0];
+              reason_reg[23:16] <= s_axis_tdata[7:0];
+              participant_stock_reg[7:0] <= s_axis_tdata[7:0];
+              level_2_reg[39:32] <= s_axis_tdata[7:0];
+              ipo_quotation_release_time_reg[7:0] <= s_axis_tdata[7:0];
+              auction_collar_reference_price_reg[7:0] <= s_axis_tdata[7:0];
+              shares_reg[15:8] <= s_axis_tdata[7:0];
+              executed_shares_reg[7:0] <= s_axis_tdata[7:0];
+              cancelled_shares_reg[7:0] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[39:32] <= s_axis_tdata[7:0];
+              cross_stock_reg[39:32] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[39:32] <= s_axis_tdata[7:0];
             end
             23: begin
-              case (message_type_reg)
-                8'h52: begin
-                  round_lot_size_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h48: begin
-                  reason_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  primary_market_maker_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_quotation_release_qualifier_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  upper_auction_collar_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              round_lot_size_reg[15:8] <= s_axis_tdata[7:0];
+              reason_reg[15:8] <= s_axis_tdata[7:0];
+              primary_market_maker_reg[7:0] <= s_axis_tdata[7:0];
+              level_2_reg[31:24] <= s_axis_tdata[7:0];
+              ipo_quotation_release_qualifier_reg[7:0] <= s_axis_tdata[7:0];
+              upper_auction_collar_price_reg[31:24] <= s_axis_tdata[7:0];
+              shares_reg[7:0] <= s_axis_tdata[7:0];
+              match_number_reg[63:56] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[31:24] <= s_axis_tdata[7:0];
+              cross_stock_reg[31:24] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[31:24] <= s_axis_tdata[7:0];
             end
             24: begin
-              case (message_type_reg)
-                8'h52: begin
-                  round_lot_size_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h48: begin
-                  reason_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  market_maker_mode_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  upper_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              round_lot_size_reg[7:0] <= s_axis_tdata[7:0];
+              reason_reg[7:0] <= s_axis_tdata[7:0];
+              market_maker_mode_reg[7:0] <= s_axis_tdata[7:0];
+              level_2_reg[23:16] <= s_axis_tdata[7:0];
+              ipo_price_reg[31:24] <= s_axis_tdata[7:0];
+              upper_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
+              order_stock_reg[63:56] <= s_axis_tdata[7:0];
+              match_number_reg[55:48] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[23:16] <= s_axis_tdata[7:0];
+              cross_stock_reg[23:16] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[23:16] <= s_axis_tdata[7:0];
             end
             25: begin
-              case (message_type_reg)
-                8'h52: begin
-                  round_lots_only_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4c: begin
-                  market_participant_state_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  upper_auction_collar_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              round_lots_only_reg[7:0] <= s_axis_tdata[7:0];
+              market_participant_state_reg[7:0] <= s_axis_tdata[7:0];
+              level_2_reg[15:8] <= s_axis_tdata[7:0];
+              ipo_price_reg[23:16] <= s_axis_tdata[7:0];
+              upper_auction_collar_price_reg[15:8] <= s_axis_tdata[7:0];
+              order_stock_reg[55:48] <= s_axis_tdata[7:0];
+              match_number_reg[47:40] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[15:8] <= s_axis_tdata[7:0];
+              cross_stock_reg[15:8] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[15:8] <= s_axis_tdata[7:0];
             end
             26: begin
-              case (message_type_reg)
-                8'h52: begin
-                  issue_classification_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_2_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  upper_auction_collar_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  new_order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              issue_classification_reg[7:0] <= s_axis_tdata[7:0];
+              level_2_reg[7:0] <= s_axis_tdata[7:0];
+              ipo_price_reg[15:8] <= s_axis_tdata[7:0];
+              upper_auction_collar_price_reg[7:0] <= s_axis_tdata[7:0];
+              order_stock_reg[47:40] <= s_axis_tdata[7:0];
+              match_number_reg[39:32] <= s_axis_tdata[7:0];
+              new_order_reference_number_reg[7:0] <= s_axis_tdata[7:0];
+              cross_stock_reg[7:0] <= s_axis_tdata[7:0];
+              imbalance_shares_reg[7:0] <= s_axis_tdata[7:0];
             end
             27: begin
-              case (message_type_reg)
-                8'h52: begin
-                  issue_sub_type_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h4b: begin
-                  ipo_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  lower_auction_collar_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_shares_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  imbalance_direction_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              issue_sub_type_reg[15:8] <= s_axis_tdata[7:0];
+              level_3_reg[63:56] <= s_axis_tdata[7:0];
+              ipo_price_reg[7:0] <= s_axis_tdata[7:0];
+              lower_auction_collar_price_reg[31:24] <= s_axis_tdata[7:0];
+              order_stock_reg[39:32] <= s_axis_tdata[7:0];
+              match_number_reg[31:24] <= s_axis_tdata[7:0];
+              replace_shares_reg[31:24] <= s_axis_tdata[7:0];
+              cross_price_reg[31:24] <= s_axis_tdata[7:0];
+              imbalance_direction_reg[7:0] <= s_axis_tdata[7:0];
             end
             28: begin
-              case (message_type_reg)
-                8'h52: begin
-                  issue_sub_type_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  lower_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_shares_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              issue_sub_type_reg[7:0] <= s_axis_tdata[7:0];
+              level_3_reg[55:48] <= s_axis_tdata[7:0];
+              lower_auction_collar_price_reg[23:16] <= s_axis_tdata[7:0];
+              order_stock_reg[31:24] <= s_axis_tdata[7:0];
+              match_number_reg[23:16] <= s_axis_tdata[7:0];
+              replace_shares_reg[23:16] <= s_axis_tdata[7:0];
+              cross_price_reg[23:16] <= s_axis_tdata[7:0];
+              noii_stock_reg[63:56] <= s_axis_tdata[7:0];
             end
             29: begin
-              case (message_type_reg)
-                8'h52: begin
-                  authenticity_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  lower_auction_collar_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_shares_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              authenticity_reg[7:0] <= s_axis_tdata[7:0];
+              level_3_reg[47:40] <= s_axis_tdata[7:0];
+              lower_auction_collar_price_reg[15:8] <= s_axis_tdata[7:0];
+              order_stock_reg[23:16] <= s_axis_tdata[7:0];
+              match_number_reg[15:8] <= s_axis_tdata[7:0];
+              replace_shares_reg[15:8] <= s_axis_tdata[7:0];
+              cross_price_reg[15:8] <= s_axis_tdata[7:0];
+              noii_stock_reg[55:48] <= s_axis_tdata[7:0];
             end
             30: begin
-              case (message_type_reg)
-                8'h52: begin
-                  short_sale_threshold_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  lower_auction_collar_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  match_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h45: begin
-                  match_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_shares_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              short_sale_threshold_indicator_reg[7:0] <= s_axis_tdata[7:0];
+              level_3_reg[39:32] <= s_axis_tdata[7:0];
+              lower_auction_collar_price_reg[7:0] <= s_axis_tdata[7:0];
+              order_stock_reg[15:8] <= s_axis_tdata[7:0];
+              match_number_reg[7:0] <= s_axis_tdata[7:0];
+              replace_shares_reg[7:0] <= s_axis_tdata[7:0];
+              cross_price_reg[7:0] <= s_axis_tdata[7:0];
+              noii_stock_reg[47:40] <= s_axis_tdata[7:0];
             end
             31: begin
-              case (message_type_reg)
-                8'h52: begin
-                  ipo_flag_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_extension_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  order_stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  order_stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  order_stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  printable_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              ipo_flag_reg[7:0] <= s_axis_tdata[7:0];
+              level_3_reg[31:24] <= s_axis_tdata[7:0];
+              auction_collar_extension_reg[31:24] <= s_axis_tdata[7:0];
+              order_stock_reg[7:0] <= s_axis_tdata[7:0];
+              printable_reg[7:0] <= s_axis_tdata[7:0];
+              replace_price_reg[31:24] <= s_axis_tdata[7:0];
+              cross_match_number_reg[63:56] <= s_axis_tdata[7:0];
+              noii_stock_reg[39:32] <= s_axis_tdata[7:0];
             end
             32: begin
-              case (message_type_reg)
-                8'h52: begin
-                  luld_reference_price_tier_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_extension_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  execution_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              luld_reference_price_tier_reg[7:0] <= s_axis_tdata[7:0];
+              level_3_reg[23:16] <= s_axis_tdata[7:0];
+              auction_collar_extension_reg[23:16] <= s_axis_tdata[7:0];
+              price_reg[31:24] <= s_axis_tdata[7:0];
+              execution_price_reg[31:24] <= s_axis_tdata[7:0];
+              replace_price_reg[23:16] <= s_axis_tdata[7:0];
+              cross_match_number_reg[55:48] <= s_axis_tdata[7:0];
+              noii_stock_reg[31:24] <= s_axis_tdata[7:0];
             end
             33: begin
-              case (message_type_reg)
-                8'h52: begin
-                  etp_flag_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_extension_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  execution_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              etp_flag_reg[7:0] <= s_axis_tdata[7:0];
+              level_3_reg[15:8] <= s_axis_tdata[7:0];
+              auction_collar_extension_reg[15:8] <= s_axis_tdata[7:0];
+              price_reg[23:16] <= s_axis_tdata[7:0];
+              execution_price_reg[23:16] <= s_axis_tdata[7:0];
+              replace_price_reg[15:8] <= s_axis_tdata[7:0];
+              cross_match_number_reg[47:40] <= s_axis_tdata[7:0];
+              noii_stock_reg[23:16] <= s_axis_tdata[7:0];
             end
             34: begin
-              case (message_type_reg)
-                8'h52: begin
-                  etp_leverage_factor_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h56: begin
-                  level_3_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h4a: begin
-                  auction_collar_extension_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  execution_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h55: begin
-                  replace_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              etp_leverage_factor_reg[31:24] <= s_axis_tdata[7:0];
+              level_3_reg[7:0] <= s_axis_tdata[7:0];
+              auction_collar_extension_reg[7:0] <= s_axis_tdata[7:0];
+              price_reg[15:8] <= s_axis_tdata[7:0];
+              execution_price_reg[15:8] <= s_axis_tdata[7:0];
+              replace_price_reg[7:0] <= s_axis_tdata[7:0];
+              cross_match_number_reg[39:32] <= s_axis_tdata[7:0];
+              noii_stock_reg[15:8] <= s_axis_tdata[7:0];
             end
             35: begin
-              case (message_type_reg)
-                8'h52: begin
-                  etp_leverage_factor_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h41: begin
-                  price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h43: begin
-                  execution_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  noii_stock_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              etp_leverage_factor_reg[23:16] <= s_axis_tdata[7:0];
+              price_reg[7:0] <= s_axis_tdata[7:0];
+              execution_price_reg[7:0] <= s_axis_tdata[7:0];
+              cross_match_number_reg[31:24] <= s_axis_tdata[7:0];
+              noii_stock_reg[7:0] <= s_axis_tdata[7:0];
             end
             36: begin
-              case (message_type_reg)
-                8'h52: begin
-                  etp_leverage_factor_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  attribution_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  trade_match_number_reg[63:56] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  far_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              etp_leverage_factor_reg[15:8] <= s_axis_tdata[7:0];
+              attribution_reg[31:24] <= s_axis_tdata[7:0];
+              trade_match_number_reg[63:56] <= s_axis_tdata[7:0];
+              cross_match_number_reg[23:16] <= s_axis_tdata[7:0];
+              far_price_reg[31:24] <= s_axis_tdata[7:0];
             end
             37: begin
-              case (message_type_reg)
-                8'h52: begin
-                  etp_leverage_factor_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  attribution_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  trade_match_number_reg[55:48] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  far_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              etp_leverage_factor_reg[7:0] <= s_axis_tdata[7:0];
+              attribution_reg[23:16] <= s_axis_tdata[7:0];
+              trade_match_number_reg[55:48] <= s_axis_tdata[7:0];
+              cross_match_number_reg[15:8] <= s_axis_tdata[7:0];
+              far_price_reg[23:16] <= s_axis_tdata[7:0];
             end
             38: begin
-              case (message_type_reg)
-                8'h52: begin
-                  inverse_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h46: begin
-                  attribution_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  trade_match_number_reg[47:40] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_match_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  far_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              inverse_indicator_reg[7:0] <= s_axis_tdata[7:0];
+              attribution_reg[15:8] <= s_axis_tdata[7:0];
+              trade_match_number_reg[47:40] <= s_axis_tdata[7:0];
+              cross_match_number_reg[7:0] <= s_axis_tdata[7:0];
+              far_price_reg[15:8] <= s_axis_tdata[7:0];
             end
             39: begin
-              case (message_type_reg)
-                8'h46: begin
-                  attribution_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h50: begin
-                  trade_match_number_reg[39:32] <= s_axis_tdata[7:0];
-                end
-                8'h51: begin
-                  cross_type_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  far_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              attribution_reg[7:0] <= s_axis_tdata[7:0];
+              trade_match_number_reg[39:32] <= s_axis_tdata[7:0];
+              cross_type_reg[7:0] <= s_axis_tdata[7:0];
+              far_price_reg[7:0] <= s_axis_tdata[7:0];
             end
             40: begin
-              case (message_type_reg)
-                8'h50: begin
-                  trade_match_number_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  near_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              trade_match_number_reg[31:24] <= s_axis_tdata[7:0];
+              near_price_reg[31:24] <= s_axis_tdata[7:0];
             end
             41: begin
-              case (message_type_reg)
-                8'h50: begin
-                  trade_match_number_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  near_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              trade_match_number_reg[23:16] <= s_axis_tdata[7:0];
+              near_price_reg[23:16] <= s_axis_tdata[7:0];
             end
             42: begin
-              case (message_type_reg)
-                8'h50: begin
-                  trade_match_number_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  near_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              trade_match_number_reg[15:8] <= s_axis_tdata[7:0];
+              near_price_reg[15:8] <= s_axis_tdata[7:0];
             end
             43: begin
-              case (message_type_reg)
-                8'h50: begin
-                  trade_match_number_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                8'h49: begin
-                  near_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              trade_match_number_reg[7:0] <= s_axis_tdata[7:0];
+              near_price_reg[7:0] <= s_axis_tdata[7:0];
             end
             44: begin
-              case (message_type_reg)
-                8'h49: begin
-                  current_reference_price_reg[31:24] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              current_reference_price_reg[31:24] <= s_axis_tdata[7:0];
             end
             45: begin
-              case (message_type_reg)
-                8'h49: begin
-                  current_reference_price_reg[23:16] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              current_reference_price_reg[23:16] <= s_axis_tdata[7:0];
             end
             46: begin
-              case (message_type_reg)
-                8'h49: begin
-                  current_reference_price_reg[15:8] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              current_reference_price_reg[15:8] <= s_axis_tdata[7:0];
             end
             47: begin
-              case (message_type_reg)
-                8'h49: begin
-                  current_reference_price_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              current_reference_price_reg[7:0] <= s_axis_tdata[7:0];
             end
             48: begin
-              case (message_type_reg)
-                8'h49: begin
-                  noii_cross_type_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              noii_cross_type_reg[7:0] <= s_axis_tdata[7:0];
             end
             49: begin
-              case (message_type_reg)
-                8'h49: begin
-                  price_variation_indicator_reg[7:0] <= s_axis_tdata[7:0];
-                end
-                default: ;
-              endcase
+              price_variation_indicator_reg[7:0] <= s_axis_tdata[7:0];
             end
             default: ;
           endcase
